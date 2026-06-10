@@ -1,1280 +1,266 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ECA Feedback Portal</title>
-  <style>
-    :root {
-      --plum-900: #2f0a3b;
-      --plum-800: #4a1160;
-      --plum-700: #5a1372;
-      --plum-600: #7f32a0;
-      --gold-500: #f0ca61;
-      --gold-400: #fde75a;
-      --cream-100: #fffaf0;
-      --mist-100: #f5eef8;
-      --line: #e6d8ef;
-      --ink: #22182a;
-      --muted: #6f6179;
-      --success: #dff4e7;
-      --success-ink: #13683b;
-      --warning: #fff6d6;
-      --warning-ink: #8e6b00;
-      --danger: #fde7e8;
-      --danger-ink: #9b2731;
-      --panel: rgba(255,255,255,0.94);
-      --shadow: 0 20px 60px rgba(58, 17, 73, 0.14);
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      min-height: 100vh;
-      font-family: "Segoe UI", Arial, sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(240, 202, 97, 0.35), transparent 28%),
-        radial-gradient(circle at right 10%, rgba(127, 50, 160, 0.18), transparent 28%),
-        linear-gradient(135deg, #efe2f5 0%, #fff8dd 55%, #f6eefc 100%);
-      padding: 24px 14px 64px;
-    }
-
-    .shell {
-      max-width: 1120px;
-      margin: 0 auto;
-    }
-
-    .hero {
-      display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 22px;
-      padding: 28px;
-      background: linear-gradient(135deg, rgba(47,10,59,0.97), rgba(90,19,114,0.92));
-      border-radius: 26px;
-      color: white;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      position: relative;
-    }
-
-    .hero::after {
-      content: "";
-      position: absolute;
-      right: -120px;
-      bottom: -120px;
-      width: 320px;
-      height: 320px;
-      background: radial-gradient(circle, rgba(253,231,90,0.18), transparent 62%);
-      border-radius: 50%;
-    }
-
-    .eyebrow {
-      color: rgba(253,231,90,0.9);
-      text-transform: uppercase;
-      letter-spacing: 0.22em;
-      font-size: 11px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-
-    .hero h1 {
-      font-size: clamp(2rem, 4vw, 3.4rem);
-      line-height: 0.95;
-      margin-bottom: 14px;
-      max-width: 10ch;
-    }
-
-    .hero p {
-      color: rgba(255,255,255,0.8);
-      max-width: 58ch;
-      line-height: 1.7;
-      font-size: 14px;
-    }
-
-    .hero-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 18px;
-    }
-
-    .hero-art {
-      min-height: 250px;
-      position: relative;
-      display: grid;
-      place-items: center;
-    }
-
-    .art-card {
-      position: absolute;
-      inset: 24px 30px;
-      border-radius: 24px;
-      transform: rotate(-9deg);
-      background:
-        linear-gradient(45deg, rgba(255,255,255,0.08) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 75%, transparent 75%, transparent),
-        linear-gradient(135deg, rgba(127,50,160,0.46), rgba(253,231,90,0.16));
-      background-size: 44px 44px, auto;
-      border: 1px solid rgba(255,255,255,0.18);
-    }
-
-    .art-pill {
-      position: absolute;
-      padding: 12px 16px;
-      border-radius: 18px;
-      backdrop-filter: blur(10px);
-      background: rgba(255,255,255,0.12);
-      border: 1px solid rgba(255,255,255,0.16);
-      box-shadow: 0 14px 24px rgba(0,0,0,0.12);
-      color: white;
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .art-pill.top { top: 28px; right: 18px; }
-    .art-pill.bottom { left: 18px; bottom: 22px; }
-
-    .status-bar {
-      margin-top: 16px;
-      padding: 14px 16px;
-      background: rgba(255,255,255,0.72);
-      border: 1px solid rgba(90,19,114,0.08);
-      border-radius: 16px;
-      color: var(--plum-800);
-      font-size: 13px;
-      box-shadow: 0 10px 24px rgba(58,17,73,0.08);
-    }
-
-    .tabs {
-      margin-top: 18px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      appearance: none;
-      border: 0;
-      background: rgba(90,19,114,0.08);
-      color: var(--plum-700);
-      border-radius: 999px;
-      padding: 12px 16px;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      letter-spacing: 0.02em;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, var(--plum-700), var(--plum-600));
-      color: white;
-      box-shadow: 0 10px 24px rgba(90,19,114,0.22);
-    }
-
-    .panel {
-      display: none;
-      margin-top: 16px;
-      padding: 24px;
-      border-radius: 24px;
-      background: var(--panel);
-      border: 1px solid rgba(255,255,255,0.72);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-    }
-
-    .panel.active { display: block; }
-
-    .hidden { display: none !important; }
-
-    .section-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 14px;
-    }
-
-    .section-title h2 {
-      font-size: 18px;
-      color: var(--plum-800);
-    }
-
-    .section-title p {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .grid-2, .grid-3, .grid-4 {
-      display: grid;
-      gap: 14px;
-    }
-    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-
-    .field {
-      display: grid;
-      gap: 7px;
-      margin-bottom: 14px;
-    }
-
-    .field label {
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--plum-700);
-    }
-
-    .field input,
-    .field select,
-    .field textarea {
-      width: 100%;
-      border: 1.5px solid var(--line);
-      border-radius: 14px;
-      padding: 12px 14px;
-      font: inherit;
-      color: var(--ink);
-      background: white;
-      outline: none;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
-    }
-
-    .field input:focus,
-    .field select:focus,
-    .field textarea:focus {
-      border-color: var(--plum-600);
-      box-shadow: 0 0 0 3px rgba(90,19,114,0.08);
-    }
-
-    .field textarea {
-      min-height: 108px;
-      resize: vertical;
-    }
-
-    .locked {
-      background: linear-gradient(180deg, #fbf9fd, #f5eff9) !important;
-      color: #574f5e;
-    }
-
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin: 8px 0 18px;
-    }
-
-    .btn {
-      appearance: none;
-      border: 0;
-      border-radius: 14px;
-      padding: 12px 18px;
-      font: inherit;
-      font-weight: 800;
-      cursor: pointer;
-      transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-    }
-
-    .btn:hover { transform: translateY(-1px); }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--plum-700), var(--plum-600));
-      color: white;
-      box-shadow: 0 12px 20px rgba(90,19,114,0.18);
-    }
-
-    .btn-secondary {
-      background: linear-gradient(135deg, var(--gold-500), var(--gold-400));
-      color: var(--plum-900);
-      box-shadow: 0 12px 20px rgba(240,202,97,0.24);
-    }
-
-    .btn-ghost {
-      background: rgba(90,19,114,0.08);
-      color: var(--plum-700);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-
-    .stat {
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid var(--line);
-      background: white;
-    }
-
-    .stat strong {
-      display: block;
-      color: var(--plum-700);
-      font-size: 24px;
-      margin-bottom: 4px;
-    }
-
-    .stat span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .card-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .task-card {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      align-items: flex-start;
-      padding: 16px 18px;
-      border: 1.5px solid var(--line);
-      border-radius: 18px;
-      background: white;
-    }
-
-    .task-card:hover {
-      border-color: rgba(127,50,160,0.42);
-      box-shadow: 0 12px 26px rgba(58,17,73,0.08);
-    }
-
-    .task-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: var(--plum-800);
-      margin-bottom: 6px;
-    }
-
-    .task-meta {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      min-height: 30px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-    }
-
-    .badge.pending { background: var(--warning); color: var(--warning-ink); }
-    .badge.submitted { background: #e3efff; color: #1c4f9d; }
-    .badge.returned { background: var(--danger); color: var(--danger-ink); }
-    .badge.approved { background: var(--success); color: var(--success-ink); }
-
-    .subpanel {
-      margin-top: 20px;
-      padding: 18px;
-      border-radius: 18px;
-      background: linear-gradient(180deg, #fff, #fbf8fd);
-      border: 1px solid var(--line);
-    }
-
-    .toast {
-      display: none;
-      margin-bottom: 18px;
-      padding: 14px 16px;
-      border-radius: 14px;
-      font-size: 13px;
-      font-weight: 700;
-      border-left: 5px solid;
-    }
-
-    .toast.show { display: block; }
-    .toast.success { background: var(--success); color: var(--success-ink); border-color: #27ae60; }
-    .toast.error { background: var(--danger); color: var(--danger-ink); border-color: #d85b65; }
-    .toast.info { background: #eaf3ff; color: #245ca8; border-color: #3e7ad7; }
-
-    .hint {
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, #fffbea, #fff7d1);
-      border-left: 4px solid var(--gold-500);
-      color: #6f5700;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .empty {
-      padding: 36px 18px;
-      text-align: center;
-      border-radius: 18px;
-      border: 1px dashed var(--line);
-      background: rgba(255,255,255,0.65);
-      color: var(--muted);
-    }
-
-    .foot {
-      margin-top: 14px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    @media (max-width: 860px) {
-      .hero { grid-template-columns: 1fr; }
-      .grid-2, .grid-3, .grid-4, .stats { grid-template-columns: 1fr; }
-      .task-card { flex-direction: column; }
-    }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ECA Feedback Portal 2.0</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body>
-  <div class="shell">
-    <section class="hero">
+  <div class="background-glow"></div>
+  <main class="app-shell">
+    <header class="hero">
       <div>
-        <div class="eyebrow">Envision Chess Academy</div>
-        <h1>Feedback Operations Portal</h1>
-        <p>
-          A cleaner portal for coaches and mentors, powered by n8n webhooks. System data is fetched, corrected, and validated in the workflow so people spend less time typing and more time reviewing.
-        </p>
-        <div class="hero-actions">
-          <button class="btn btn-ghost" id="reload-months-button">Reload Months</button>
+        <p class="eyebrow">Envision Chess Academy</p>
+        <h1>Feedback Portal 2.0</h1>
+        <p class="hero-copy">A smoother Vercel-first workspace for monthly feedback, mentor review, legacy records, Lichess snapshots, and admin actions.</p>
+      </div>
+      <div class="hero-card">
+        <div class="mini-board" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
         </div>
-      </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="art-card"></div>
-        <div class="art-pill top">Mentor Review</div>
-        <div class="art-pill bottom">Lichess Sync</div>
-      </div>
-    </section>
-
-    <div class="status-bar" id="status-banner">Portal ready. This version is designed for n8n webhook orchestration and protected system fields.</div>
-
-    <section class="panel active" id="panel-access">
-      <div id="access-toast" class="toast"></div>
-      <div class="section-title">
         <div>
-          <h2>Email OTP Login</h2>
-          <p>Only the required section will be shown after verification. Coaches and mentors will not see each other's workspace by default.</p>
+          <strong id="connection-label">Checking backend…</strong>
+          <small id="connection-detail">Vercel API proxy keeps frontend clean and avoids browser CORS issues.</small>
         </div>
-        <span class="badge pending" id="session-role-badge">Not Logged In</span>
+      </div>
+    </header>
+
+    <section class="notice" id="banner" role="status">Loading portal…</section>
+
+    <section class="login-card" id="login-card">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow dark">Secure access</p>
+          <h2>Email OTP login</h2>
+          <p>Coaches see only assigned feedback tasks. Mentors see review queues, approved records, and admin controls.</p>
+        </div>
+        <span class="status-pill neutral" id="session-pill">Signed out</span>
       </div>
 
-      <div class="grid-3">
-        <div class="field">
-          <label>Role</label>
+      <div class="form-grid three">
+        <label class="field">
+          <span>Role</span>
           <select id="login-role">
             <option value="coach">Coach</option>
-            <option value="mentor">Mentor</option>
+            <option value="mentor">Mentor / Admin</option>
           </select>
-        </div>
-        <div class="field">
-          <label>Email</label>
-          <input id="login-email" type="email" placeholder="name@envisionchessacademy.com">
-        </div>
-        <div class="field">
-          <label>Month</label>
-          <select id="global-month"></select>
-        </div>
+        </label>
+        <label class="field">
+          <span>Email</span>
+          <input id="login-email" type="email" placeholder="name@example.com" autocomplete="email" />
+        </label>
+        <label class="field">
+          <span>Month</span>
+          <select id="month-select"></select>
+        </label>
       </div>
 
-      <div class="toolbar">
-        <button class="btn btn-secondary" id="request-otp-btn">Send OTP</button>
-        <button class="btn btn-ghost" id="logout-btn">Logout</button>
+      <div class="action-row">
+        <button class="btn gold" id="send-otp-btn">Send OTP</button>
+        <button class="btn ghost" id="demo-btn">Open Demo</button>
+        <button class="btn ghost" id="reset-btn">Reset</button>
       </div>
 
-      <div class="grid-2">
-        <div class="field">
-          <label>OTP Code</label>
-          <input id="otp-code" type="text" placeholder="Enter 6-digit code">
-        </div>
-        <div class="field">
-          <label>Verify</label>
-          <button class="btn btn-primary" id="verify-otp-btn" style="margin-top:22px;">Verify and Open Portal</button>
-        </div>
+      <div class="otp-row" id="otp-row">
+        <label class="field">
+          <span>OTP Code</span>
+          <input id="otp-code" inputmode="numeric" placeholder="6-digit code" />
+        </label>
+        <button class="btn primary" id="verify-otp-btn">Verify & Open Workspace</button>
       </div>
     </section>
 
-    <div class="tabs">
-      <button class="tab-btn hidden" data-tab="coach">Coach Workspace</button>
-      <button class="tab-btn hidden" data-tab="mentor">Mentor Queue</button>
-      <button class="tab-btn hidden" data-tab="approved">Approved & Send</button>
-      <button class="tab-btn active" data-tab="setup">Webhook Setup</button>
-    </div>
-
-    <section class="panel" id="panel-coach">
-      <div id="coach-toast" class="toast"></div>
-      <div class="section-title">
-        <div>
-          <h2>Coach Workspace</h2>
-          <p>Load coach tasks from the webhook, pick a student, fetch the correct Lichess data, and submit.</p>
-        </div>
-        <span class="badge pending">Webhook Driven</span>
-      </div>
-
-      <div class="grid-2">
-        <div class="field">
-          <label>Coach Email</label>
-          <input id="coach-email" type="email" placeholder="coach@envisionchessacademy.com">
-        </div>
-        <div class="field">
-          <label>Month</label>
-          <select id="coach-month"></select>
-        </div>
-      </div>
-      <div class="toolbar">
-        <button class="btn btn-primary" id="load-coach-btn">Load My Students</button>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><strong id="coach-active">0</strong><span>Active Students</span></div>
-        <div class="stat"><strong id="coach-submitted">0</strong><span>Submitted</span></div>
-        <div class="stat"><strong id="coach-pending">0</strong><span>Pending</span></div>
-        <div class="stat"><strong id="coach-returned">0</strong><span>Returned</span></div>
-      </div>
-
-      <div class="card-list" id="coach-list">
-        <div class="empty">Load a coach to see the pending and returned feedback tasks.</div>
-      </div>
-
-      <div class="subpanel">
-        <div class="section-title">
+    <section class="workspace hidden" id="workspace">
+      <aside class="sidebar">
+        <div class="profile-card">
+          <span class="avatar" id="avatar">E</span>
           <div>
-            <h2>Selected Feedback Task</h2>
-            <p>Student identity and task details stay locked. They should come from the workflow, not manual typing.</p>
-          </div>
-          <span class="badge submitted" id="selected-task-status">No Task Selected</span>
-        </div>
-
-        <div class="grid-4">
-          <div class="field"><label>Student Name</label><input id="student-name" class="locked" disabled></div>
-          <div class="field"><label>Coach Name</label><input id="coach-name" class="locked" disabled></div>
-          <div class="field"><label>Batch Code</label><input id="batch-code" class="locked" disabled></div>
-          <div class="field"><label>Month</label><input id="task-month" class="locked" disabled></div>
-          <div class="field"><label>Lichess ID</label><input id="task-lichess-id" class="locked" disabled></div>
-        </div>
-
-        <div class="section-title" style="margin-top:18px;">
-          <div>
-            <h2>Lichess Snapshot</h2>
-            <p>Use the webhook to fetch highest rating, results, rating change, puzzle activity, and best result.</p>
+            <strong id="profile-email">—</strong>
+            <small id="profile-role">—</small>
           </div>
         </div>
-        <div class="toolbar">
-          <button class="btn btn-secondary" id="fetch-lichess-btn">Fetch Correct Data</button>
+        <nav class="nav">
+          <button data-view="coach" class="nav-btn active">Coach Tasks</button>
+          <button data-view="mentor" class="nav-btn mentor-only">Mentor Queue</button>
+          <button data-view="approved" class="nav-btn mentor-only">Approved & History</button>
+          <button data-view="admin" class="nav-btn mentor-only">Admin Tools</button>
+        </nav>
+        <div class="sidebar-footer">
+          <label class="field compact">
+            <span>Working month</span>
+            <select id="workspace-month"></select>
+          </label>
+          <button class="btn ghost full" id="reload-btn">Reload</button>
+          <button class="btn danger full" id="logout-btn">Logout</button>
         </div>
+      </aside>
 
-        <div class="grid-4">
-          <div class="field"><label>Highest Rating</label><input id="student-rating" class="locked" disabled></div>
-          <div class="field"><label>Games Played</label><input id="games-played" class="locked" disabled></div>
-          <div class="field"><label>Wins</label><input id="wins" class="locked" disabled></div>
-          <div class="field"><label>Draws</label><input id="draws" class="locked" disabled></div>
-          <div class="field"><label>Losses</label><input id="losses" class="locked" disabled></div>
-          <div class="field"><label>Rating Change</label><input id="rating-change" class="locked" disabled></div>
-          <div class="field"><label>Puzzle Activity</label><input id="puzzle-activity" class="locked" disabled></div>
-          <div class="field"><label>Best Result</label><input id="best-result" class="locked" disabled></div>
-        </div>
-
-        <div class="section-title" style="margin-top:18px;">
-          <div>
-            <h2>Coach Evaluation</h2>
-            <p>Only the judgment fields stay editable for the coach.</p>
-          </div>
-        </div>
-
-        <div class="grid-3">
-          <div class="field">
-            <label>Puzzle Consistency</label>
-            <select id="puzzle-consistency"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Poor</option></select>
-          </div>
-          <div class="field">
-            <label>Skill Level</label>
-            <select id="skill-level"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Needs Support</option></select>
-          </div>
-          <div class="field">
-            <label>Class Performance</label>
-            <select id="class-performance"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Poor</option></select>
-          </div>
-        </div>
-
-        <div class="field"><label>Strengths</label><textarea id="strengths"></textarea></div>
-        <div class="field"><label>Improvement Areas</label><textarea id="improvement-areas"></textarea></div>
-        <div class="field"><label>Focus for Next Month</label><textarea id="focus-next-month"></textarea></div>
-        <div class="field"><label>Overall Comment</label><textarea id="overall-comment"></textarea></div>
-        <div class="field"><label>Remark for Mentor Only</label><textarea id="mentor-remark"></textarea></div>
-
-        <div class="toolbar">
-          <button class="btn btn-ghost" id="save-draft-btn">Save Draft</button>
-          <button class="btn btn-primary" id="submit-feedback-btn">Submit to Mentor</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="panel-mentor">
-      <div id="mentor-toast" class="toast"></div>
-      <div class="section-title">
-        <div>
-          <h2>Mentor Queue</h2>
-          <p>Mentors can activate monthly feedbacks, import old approvals, review submissions, edit fields, and approve or return.</p>
-        </div>
-        <span class="badge approved">Mentor Actions</span>
-      </div>
-
-      <div class="grid-2">
-        <div class="field">
-          <label>Mentor Email</label>
-          <input id="mentor-email" type="email" value="contact@envisionchessacademy.com">
-        </div>
-        <div class="field">
-          <label>Month</label>
-          <select id="mentor-month"></select>
-        </div>
-      </div>
-      <div class="toolbar">
-        <button class="btn btn-primary" id="load-mentor-btn">Load Review Queue</button>
-        <button class="btn btn-secondary" id="activate-feedbacks-btn">Activate Feedbacks Manually</button>
-        <button class="btn btn-ghost" id="import-legacy-btn">Import Old Approval Data</button>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><strong id="mentor-pending">0</strong><span>Pending Review</span></div>
-        <div class="stat"><strong id="mentor-approved">0</strong><span>Approved</span></div>
-        <div class="stat"><strong id="mentor-returned">0</strong><span>Returned</span></div>
-        <div class="stat"><strong id="mentor-overdue">0</strong><span>Overdue</span></div>
-      </div>
-
-      <div class="card-list" id="mentor-list">
-        <div class="empty">Load the mentor queue to review tasks.</div>
-      </div>
-
-      <div class="subpanel">
-        <div class="section-title">
-          <div>
-            <h2>Mentor Notes & Decision</h2>
-            <p>Open a task, adjust fields if needed, then approve or return from here.</p>
-          </div>
-        </div>
-        <div class="field"><label>Mentor Notes</label><textarea id="mentor-notes"></textarea></div>
-        <div class="toolbar">
-          <button class="btn btn-secondary" id="approve-btn">Approve and Send to Parent</button>
-          <button class="btn btn-ghost" id="return-btn">Return to Coach</button>
-        </div>
-      </div>
-    </section>
-
-    <section class="panel" id="panel-approved">
-      <div id="approved-toast" class="toast"></div>
-      <div class="section-title">
-        <div>
-          <h2>Approved & Send</h2>
-          <p>This area is reserved for already-approved reports, resend actions, and parent delivery tracking.</p>
-        </div>
-      </div>
-      <div class="hint">
-        The next workflow hook can populate this tab with approved records and expose a safe "Send to parent now" action. I left this as a focused area so the portal does not overload mentors in the main queue.
-      </div>
-      <div class="card-list" id="approved-list" style="margin-top:16px;">
-        <div class="empty">Approved records will appear here once the approved listing webhook is added.</div>
-      </div>
-    </section>
-
-    <section class="panel" id="panel-setup">
-      <div id="setup-toast" class="toast"></div>
-      <div class="section-title">
-        <div>
-          <h2>Webhook Setup</h2>
-          <p>The portal is intentionally built around n8n webhooks and a thin Apps Script layer, closer to your older task manager pattern.</p>
-        </div>
-      </div>
-
-      <div class="hint">
-        n8n should do the smart orchestration here: fetch real months, load tasks, normalize old approval data, fetch and correct Lichess activity, notify mentors, and send reminders. The frontend should mainly select, review, and submit.
-      </div>
-
-      <div class="subpanel">
-        <div class="section-title"><h2>Expected Webhook Endpoints</h2></div>
-        <div class="grid-2">
-          <div class="field"><label>Proxy</label><input class="locked" disabled value="/webhook/eca-feedback-proxy"></div>
-          <div class="field"><label>Coach Submit</label><input class="locked" disabled value="/webhook/eca-feedback-submit"></div>
-          <div class="field"><label>Mentor Action</label><input class="locked" disabled value="/webhook/eca-feedback-mentor-action"></div>
-          <div class="field"><label>Lichess Fetch</label><input class="locked" disabled value="/webhook/eca-feedback-lichess-fetch"></div>
-          <div class="field"><label>Monthly Launch</label><input class="locked" disabled value="/webhook/eca-feedback-launch-month"></div>
-          <div class="field"><label>Legacy Import</label><input class="locked" disabled value="/webhook/eca-feedback-legacy-import"></div>
-        </div>
-      </div>
-    </section>
-
-    <div class="foot">Envision Chess Academy · Feedback Operations Portal · n8n-first single-file HTML for Wix embedding</div>
-  </div>
-
-  <script src="config.js" onerror="console.warn('config.js not found; using built-in backend fallback')"></script>
-  <script>
-    const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAUwBpue9e0pCa0D-8fml3yDDknftZ8o9LGqipaJnfl2EFYxuqGGHDfT27j3TQT8e76A/exec";
-
-    const CONFIG = {
-      appsScriptUrl: (window.FEEDBACK_PORTAL_CONFIG && window.FEEDBACK_PORTAL_CONFIG.apiBaseUrl) || FALLBACK_APPS_SCRIPT_URL,
-      n8nBaseUrl: (window.FEEDBACK_PORTAL_CONFIG && window.FEEDBACK_PORTAL_CONFIG.n8nBaseUrl) || "",
-      mentorEmail: "contact@envisionchessacademy.com"
-    };
-
-    const state = {
-      month: "",
-      coachEmail: "",
-      mentorEmail: CONFIG.mentorEmail,
-      currentTaskId: "",
-      currentTask: null,
-      demo: false,
-      sessionToken: "",
-      role: "",
-      email: ""
-    };
-
-    const demo = {
-      months: ["Feb 2026", "Mar 2026", "Apr 2026", "May 2026"],
-      coach: {
-        summary: { active: 12, submitted: 6, pending: 4, returned: 2 },
-        tasks: [
-          { taskId: "TASK-001", studentName: "Test Student", studentId: "ECA1077", batchCode: "PIC-99936", lichessId: "sanvi-ghosh", taskStatus: "Pending", mentorStatus: "Pending", month: "Mar 2026", coachName: "Test Coach" },
-          { taskId: "TASK-002", studentName: "Aarav Sen", studentId: "ECA1155", batchCode: "PIC-99112", lichessId: "aaravsen", taskStatus: "Returned", mentorStatus: "Returned", month: "Mar 2026", coachName: "Test Coach" }
-        ]
-      },
-      mentor: {
-        summary: { pending: 7, approved: 14, returned: 2, overdue: 3 },
-        tasks: [
-          { taskId: "TASK-001", studentName: "Test Student", coachName: "Test Coach", mentorStatus: "Pending", month: "Mar 2026" },
-          { taskId: "TASK-003", studentName: "Diya Janga", coachName: "Test Coach", mentorStatus: "Approved", month: "Mar 2026" }
-        ]
-      },
-      task: {
-        taskId: "TASK-001",
-        studentName: "Test Student",
-        coachName: "Test Coach",
-        batchCode: "PIC-99936",
-        month: "Mar 2026",
-        taskStatus: "Pending",
-        feedback: {
-          studentRating: "",
-          gamesPlayed: "",
-          wins: "",
-          draws: "",
-          losses: "",
-          ratingChange: "",
-          puzzleActivity: "",
-          bestResult: "",
-          puzzleConsistency: "",
-          skillLevel: "",
-          classPerformance: "",
-          strengths: "",
-          improvementAreas: "",
-          focusNextMonth: "",
-          overallComment: "",
-          mentorRemark: "",
-          mentorNotes: ""
-        }
-      },
-      lichess: {
-        studentRating: "1652 Blitz",
-        gamesPlayed: "35",
-        wins: "18",
-        draws: "0",
-        losses: "17",
-        ratingChange: "-25",
-        puzzleActivity: "42 puzzles",
-        bestResult: "Win vs 1738 rated opponent"
-      }
-    };
-
-    document.querySelectorAll(".tab-btn").forEach((btn) => {
-      btn.addEventListener("click", () => switchTab(btn.dataset.tab, btn));
-    });
-
-    document.getElementById("reload-months-button").addEventListener("click", loadMonths);
-    document.getElementById("request-otp-btn").addEventListener("click", requestOtp);
-    document.getElementById("verify-otp-btn").addEventListener("click", verifyOtp);
-    document.getElementById("logout-btn").addEventListener("click", logout);
-    document.getElementById("load-coach-btn").addEventListener("click", loadCoachDashboard);
-    document.getElementById("load-mentor-btn").addEventListener("click", loadMentorDashboard);
-    document.getElementById("fetch-lichess-btn").addEventListener("click", fetchLichess);
-    document.getElementById("save-draft-btn").addEventListener("click", () => submitFeedback("draft"));
-    document.getElementById("submit-feedback-btn").addEventListener("click", () => submitFeedback("submit"));
-    document.getElementById("approve-btn").addEventListener("click", () => mentorUpdate("Approved"));
-    document.getElementById("return-btn").addEventListener("click", () => mentorUpdate("Returned"));
-    document.getElementById("activate-feedbacks-btn").addEventListener("click", () => runAction("launch_tasks"));
-    document.getElementById("import-legacy-btn").addEventListener("click", () => runAction("sync_legacy"));
-
-    init();
-
-    async function init() {
-      await loadMonths();
-      document.getElementById("mentor-email").value = CONFIG.mentorEmail;
-      document.getElementById("login-email").value = CONFIG.mentorEmail;
-      setBanner((CONFIG.appsScriptUrl || CONFIG.n8nBaseUrl) ? "Live backend connected. Sign in with OTP to open the correct workspace." : "Backend URL missing. Add the live endpoint before using this portal.");
-    }
-
-    function switchTab(tab, button) {
-      if (button.classList.contains("hidden")) return;
-      document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.remove("active"));
-      document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-      button.classList.add("active");
-      document.getElementById("panel-" + tab).classList.add("active");
-    }
-
-    async function loadMonths() {
-      const months = CONFIG.appsScriptUrl ? await getMonths() : demo.months;
-      fillMonthSelect("coach-month", months);
-      fillMonthSelect("mentor-month", months);
-      fillMonthSelect("global-month", months);
-    }
-
-    async function getMonths() {
-      try {
-        const data = await apiGet("available_months", {});
-        return (data.months && data.months.length) ? data.months : demo.months;
-      } catch (error) {
-        return demo.months;
-      }
-    }
-
-    function fillMonthSelect(id, months) {
-      const select = document.getElementById(id);
-      select.innerHTML = months.map((month) => `<option value="${escapeHtml(month)}">${escapeHtml(month)}</option>`).join("");
-      if (months.length) select.value = months[months.length - 1];
-    }
-
-    async function loadCoachDashboard() {
-      state.coachEmail = document.getElementById("coach-email").value.trim() || state.email;
-      state.month = document.getElementById("coach-month").value || document.getElementById("global-month").value;
-      if (!state.coachEmail) return showToast("coach-toast", "Enter a coach email first.", "error");
-
-      try {
-        const data = await apiGet("coach_dashboard", { email: state.coachEmail, month: state.month, sessionToken: state.sessionToken });
-        setCoachSummary(data.summary || {});
-        renderCoachTasks(data.tasks || []);
-        showToast("coach-toast", "Coach dashboard loaded.", "success");
-      } catch (error) {
-        showToast("coach-toast", error.message, "error");
-      }
-    }
-
-    async function loadMentorDashboard() {
-      state.mentorEmail = document.getElementById("mentor-email").value.trim() || state.email;
-      state.month = document.getElementById("mentor-month").value || document.getElementById("global-month").value;
-      if (!state.mentorEmail) return showToast("mentor-toast", "Enter a mentor email first.", "error");
-
-      try {
-        const data = await apiGet("mentor_dashboard", { email: state.mentorEmail, month: state.month, sessionToken: state.sessionToken });
-        setMentorSummary(data.summary || {});
-        renderMentorTasks(data.tasks || []);
-        showToast("mentor-toast", "Mentor queue loaded.", "success");
-      } catch (error) {
-        showToast("mentor-toast", error.message, "error");
-      }
-    }
-
-    async function loadApprovedDashboard() {
-      if (state.role !== "mentor") return;
-      try {
-        const data = await apiGet("approved_dashboard", {
-          email: state.email,
-          month: document.getElementById("mentor-month").value || document.getElementById("global-month").value,
-          sessionToken: state.sessionToken
-        });
-        const container = document.getElementById("approved-list");
-        if (!data.tasks || !data.tasks.length) {
-          container.innerHTML = `<div class="empty">No approved records found for this month.</div>`;
-          return;
-        }
-        container.innerHTML = data.tasks.map((task) => `
-          <div class="task-card">
+      <div class="content-area">
+        <section class="view" id="view-coach">
+          <div class="section-heading sticky-heading">
             <div>
-              <div class="task-title">${escapeHtml(task.studentName)}</div>
-              <div class="task-meta">
-                <span>Coach: ${escapeHtml(task.coachName || "")}</span>
-                <span>${escapeHtml(task.month || "")}</span>
-                <span>${escapeHtml(task.lichessId || "")}</span>
-              </div>
+              <p class="eyebrow dark">Coach Workspace</p>
+              <h2>Assigned feedback tasks</h2>
+              <p>Open a student, fetch Lichess data, save draft, and submit to mentor.</p>
             </div>
-            <div><span class="badge approved">Approved</span></div>
+            <button class="btn primary" id="load-coach-btn">Load My Students</button>
           </div>
-        `).join("");
-      } catch (error) {
-        showToast("approved-toast", error.message, "error");
-      }
-    }
+          <div class="stats-grid" id="coach-stats"></div>
+          <div class="toolbar">
+            <input class="search" id="coach-search" placeholder="Search student, batch, status…" />
+          </div>
+          <div class="list" id="coach-list"></div>
+        </section>
 
-    function setCoachSummary(summary) {
-      document.getElementById("coach-active").textContent = summary.active || 0;
-      document.getElementById("coach-submitted").textContent = summary.submitted || 0;
-      document.getElementById("coach-pending").textContent = summary.pending || 0;
-      document.getElementById("coach-returned").textContent = summary.returned || 0;
-    }
+        <section class="view hidden" id="view-mentor">
+          <div class="section-heading sticky-heading">
+            <div>
+              <p class="eyebrow dark">Mentor Queue</p>
+              <h2>Review submissions</h2>
+              <p>Review submitted/returned/pending items, edit if needed, approve or return.</p>
+            </div>
+            <button class="btn primary" id="load-mentor-btn">Load Queue</button>
+          </div>
+          <div class="stats-grid" id="mentor-stats"></div>
+          <div class="toolbar">
+            <input class="search" id="mentor-search" placeholder="Search student, coach, status…" />
+          </div>
+          <div class="list" id="mentor-list"></div>
+        </section>
 
-    function setMentorSummary(summary) {
-      document.getElementById("mentor-pending").textContent = summary.pending || 0;
-      document.getElementById("mentor-approved").textContent = summary.approved || 0;
-      document.getElementById("mentor-returned").textContent = summary.returned || 0;
-      document.getElementById("mentor-overdue").textContent = summary.overdue || 0;
-    }
+        <section class="view hidden" id="view-approved">
+          <div class="section-heading sticky-heading">
+            <div>
+              <p class="eyebrow dark">Approved & History</p>
+              <h2>Approved reports</h2>
+              <p>Mentors can verify old imported reports and recent approved feedbacks.</p>
+            </div>
+            <button class="btn primary" id="load-approved-btn">Load Approved</button>
+          </div>
+          <div class="toolbar">
+            <input class="search" id="approved-search" placeholder="Search approved reports…" />
+          </div>
+          <div class="list" id="approved-list"></div>
+        </section>
 
-    function renderCoachTasks(tasks) {
-      const container = document.getElementById("coach-list");
-      if (!tasks.length) {
-        container.innerHTML = `<div class="empty">No students found for this coach and month.</div>`;
-        return;
-      }
-      container.innerHTML = tasks.map((task) => `
-        <div class="task-card">
+        <section class="view hidden" id="view-admin">
+          <div class="section-heading sticky-heading">
+            <div>
+              <p class="eyebrow dark">Admin Tools</p>
+              <h2>Monthly operations</h2>
+              <p>Run only when needed. These actions call Apps Script through Vercel.</p>
+            </div>
+          </div>
+          <div class="admin-grid">
+            <button class="admin-card" data-admin-action="initialize">
+              <span>01</span><strong>Initialize Sheets</strong><small>Create/repair Portal_Tasks, Portal_Submissions, and mentor config.</small>
+            </button>
+            <button class="admin-card" data-admin-action="sync_legacy">
+              <span>02</span><strong>Import Old Approval Data</strong><small>Bring old detailed approvals into the new portal tables.</small>
+            </button>
+            <button class="admin-card" data-admin-action="launch_tasks">
+              <span>03</span><strong>Launch Current Month</strong><small>Create monthly tasks for active roster pairs.</small>
+            </button>
+            <button class="admin-card" data-admin-action="send_reminders">
+              <span>04</span><strong>Send Reminders</strong><small>Email coaches who still have pending/returned tasks.</small>
+            </button>
+            <button class="admin-card" data-admin-action="install_triggers">
+              <span>05</span><strong>Install Triggers</strong><small>Monthly launch and reminder trigger setup.</small>
+            </button>
+          </div>
+          <pre class="log-box" id="admin-log">Admin output will appear here.</pre>
+        </section>
+      </div>
+    </section>
+
+    <section class="drawer hidden" id="task-drawer" aria-live="polite">
+      <div class="drawer-backdrop" id="drawer-backdrop"></div>
+      <article class="drawer-panel">
+        <div class="drawer-head">
           <div>
-            <div class="task-title">${escapeHtml(task.studentName)}</div>
-            <div class="task-meta">
-              <span>${escapeHtml(task.studentId || "")}</span>
-              <span>Batch ${escapeHtml(task.batchCode || "-")}</span>
-              <span>${escapeHtml(task.lichessId || "-")}</span>
-            </div>
+            <p class="eyebrow dark" id="drawer-context">Feedback task</p>
+            <h2 id="drawer-title">No student selected</h2>
+            <p id="drawer-subtitle">Open a task from the dashboard.</p>
           </div>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <span class="badge ${badgeClass(task.taskStatus)}">${escapeHtml(task.taskStatus || "Pending")}</span>
-            <button class="btn btn-ghost" onclick="openTask('${escapeHtml(task.taskId)}','coach')">Open</button>
+          <button class="icon-btn" id="drawer-close" aria-label="Close">×</button>
+        </div>
+
+        <div class="summary-strip" id="task-summary-strip"></div>
+
+        <div class="drawer-tabs">
+          <button class="drawer-tab active" data-drawer-tab="form">Feedback Form</button>
+          <button class="drawer-tab" data-drawer-tab="history">Old Data & History</button>
+        </div>
+
+        <div class="drawer-view" id="drawer-form">
+          <section class="panel-block">
+            <div class="block-title">
+              <h3>System details</h3>
+              <button class="btn gold small" id="fetch-lichess-btn">Fetch Lichess</button>
+            </div>
+            <div class="form-grid four">
+              <label class="field"><span>Student</span><input id="student-name" disabled /></label>
+              <label class="field"><span>Coach</span><input id="coach-name" disabled /></label>
+              <label class="field"><span>Batch</span><input id="batch-code" disabled /></label>
+              <label class="field"><span>Lichess</span><input id="lichess-id" disabled /></label>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <h3>Lichess snapshot</h3>
+            <div class="form-grid four">
+              <label class="field"><span>Rating</span><input id="student-rating" /></label>
+              <label class="field"><span>Games</span><input id="games-played" /></label>
+              <label class="field"><span>Wins</span><input id="wins" /></label>
+              <label class="field"><span>Draws</span><input id="draws" /></label>
+              <label class="field"><span>Losses</span><input id="losses" /></label>
+              <label class="field"><span>Rating Change</span><input id="rating-change" /></label>
+              <label class="field"><span>Puzzle Activity</span><input id="puzzle-activity" /></label>
+              <label class="field"><span>Best Result</span><input id="best-result" /></label>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <h3>Coach evaluation</h3>
+            <div class="form-grid three">
+              <label class="field"><span>Puzzle Consistency</span><select id="puzzle-consistency"><option value="">Select</option><option>Excellent — Daily practice</option><option>Good — 3-4 times/week</option><option>Average — Sometimes practices</option><option>Poor — Rarely practices</option></select></label>
+              <label class="field"><span>Skill Level</span><select id="skill-level"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Needs Support</option></select></label>
+              <label class="field"><span>Class Performance</span><select id="class-performance"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Poor</option></select></label>
+            </div>
+            <label class="field"><span>Strengths</span><textarea id="strengths" placeholder="What improved this month?"></textarea></label>
+            <label class="field"><span>Improvement Areas</span><textarea id="improvement-areas" placeholder="What needs attention?"></textarea></label>
+            <label class="field"><span>Focus for Next Month</span><textarea id="focus-next-month" placeholder="Clear practice plan for next month"></textarea></label>
+            <label class="field"><span>Overall Comment</span><textarea id="overall-comment" placeholder="Parent-facing comment"></textarea></label>
+            <label class="field"><span>Private Mentor Remark</span><textarea id="mentor-remark" placeholder="Visible internally only"></textarea></label>
+          </section>
+
+          <section class="panel-block mentor-tools hidden" id="mentor-notes-block">
+            <h3>Mentor decision</h3>
+            <label class="field"><span>Mentor Notes</span><textarea id="mentor-notes" placeholder="Notes for coach/admin"></textarea></label>
+          </section>
+
+          <div class="drawer-actions">
+            <button class="btn ghost" id="save-draft-btn">Save Draft</button>
+            <button class="btn primary" id="submit-feedback-btn">Submit to Mentor</button>
+            <button class="btn gold mentor-tools hidden" id="approve-btn">Approve & Send</button>
+            <button class="btn ghost mentor-tools hidden" id="return-btn">Return to Coach</button>
           </div>
         </div>
-      `).join("");
-    }
 
-    function renderMentorTasks(tasks) {
-      const container = document.getElementById("mentor-list");
-      if (!tasks.length) {
-        container.innerHTML = `<div class="empty">No review items found for this month.</div>`;
-        return;
-      }
-      container.innerHTML = tasks.map((task) => `
-        <div class="task-card">
-          <div>
-            <div class="task-title">${escapeHtml(task.studentName)}</div>
-            <div class="task-meta">
-              <span>Coach: ${escapeHtml(task.coachName || "")}</span>
-              <span>${escapeHtml(task.month || "")}</span>
-            </div>
-          </div>
-          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-            <span class="badge ${badgeClass(task.mentorStatus)}">${escapeHtml(task.mentorStatus || "Pending")}</span>
-            <button class="btn btn-ghost" onclick="openTask('${escapeHtml(task.taskId)}','mentor')">Review</button>
-          </div>
+        <div class="drawer-view hidden" id="drawer-history">
+          <section class="panel-block">
+            <h3>Student history</h3>
+            <p class="muted">The rebuilt Apps Script add-on includes a history endpoint. If it is not installed yet, this panel will show a graceful message instead of breaking the task flow.</p>
+            <div id="history-list" class="history-list"></div>
+          </section>
         </div>
-      `).join("");
-    }
-
-    async function openTask(taskId, role) {
-      try {
-        let data;
-        const email = role === "mentor" ? document.getElementById("mentor-email").value.trim() : document.getElementById("coach-email").value.trim();
-        data = await apiGet("task", { email, role, taskId, sessionToken: state.sessionToken });
-
-        state.currentTaskId = taskId;
-        state.currentTask = data;
-        fillTaskForm(data);
-        document.querySelector('[data-tab="coach"]').click();
-        showToast(role === "mentor" ? "mentor-toast" : "coach-toast", "Task opened.", "info");
-      } catch (error) {
-        showToast(role === "mentor" ? "mentor-toast" : "coach-toast", error.message, "error");
-      }
-    }
-
-    function fillTaskForm(data) {
-      const feedback = data.feedback || {};
-      document.getElementById("selected-task-status").textContent = data.taskStatus || data.mentorStatus || "Open";
-      document.getElementById("selected-task-status").className = `badge ${badgeClass(data.taskStatus || data.mentorStatus)}`;
-      document.getElementById("student-name").value = data.studentName || "";
-      document.getElementById("coach-name").value = data.coachName || "";
-      document.getElementById("batch-code").value = data.batchCode || "";
-      document.getElementById("task-month").value = data.month || "";
-      document.getElementById("task-lichess-id").value = data.lichessId || "";
-      document.getElementById("student-rating").value = feedback.studentRating || "";
-      document.getElementById("games-played").value = feedback.gamesPlayed || "";
-      document.getElementById("wins").value = feedback.wins || "";
-      document.getElementById("draws").value = feedback.draws || "";
-      document.getElementById("losses").value = feedback.losses || "";
-      document.getElementById("rating-change").value = feedback.ratingChange || "";
-      document.getElementById("puzzle-activity").value = feedback.puzzleActivity || "";
-      document.getElementById("best-result").value = feedback.bestResult || "";
-      document.getElementById("puzzle-consistency").value = feedback.puzzleConsistency || "";
-      document.getElementById("skill-level").value = feedback.skillLevel || "";
-      document.getElementById("class-performance").value = feedback.classPerformance || "";
-      document.getElementById("strengths").value = feedback.strengths || "";
-      document.getElementById("improvement-areas").value = feedback.improvementAreas || "";
-      document.getElementById("focus-next-month").value = feedback.focusNextMonth || "";
-      document.getElementById("overall-comment").value = feedback.overallComment || "";
-      document.getElementById("mentor-remark").value = feedback.mentorRemark || "";
-      document.getElementById("mentor-notes").value = feedback.mentorNotes || "";
-    }
-
-    async function fetchLichess() {
-      if (!state.currentTaskId) return showToast("coach-toast", "Open a task first.", "error");
-      try {
-        let data;
-        const coachEmail = document.getElementById("coach-email").value.trim();
-        data = await apiGet("fetch_lichess", { email: coachEmail, role: "coach", taskId: state.currentTaskId, sessionToken: state.sessionToken });
-        document.getElementById("student-rating").value = data.studentRating || "";
-        document.getElementById("games-played").value = data.gamesPlayed || "";
-        document.getElementById("wins").value = data.wins || "";
-        document.getElementById("draws").value = data.draws || "";
-        document.getElementById("losses").value = data.losses || "";
-        document.getElementById("rating-change").value = data.ratingChange || "";
-        document.getElementById("puzzle-activity").value = data.puzzleActivity || "";
-        document.getElementById("best-result").value = data.bestResult || "";
-        showToast("coach-toast", "Correct Lichess data fetched.", "success");
-      } catch (error) {
-        showToast("coach-toast", error.message, "error");
-      }
-    }
-
-    async function submitFeedback(mode) {
-      if (!state.currentTaskId) return showToast("coach-toast", "Open a task first.", "error");
-      try {
-        const payload = {
-          email: document.getElementById("coach-email").value.trim(),
-          role: "coach",
-          taskId: state.currentTaskId,
-          mode,
-          sessionToken: state.sessionToken,
-          feedback: collectFeedback()
-        };
-        await apiPost("submit_feedback", payload);
-        showToast("coach-toast", mode === "draft" ? "Draft saved." : "Feedback submitted to mentor.", "success");
-        loadCoachDashboard();
-      } catch (error) {
-        showToast("coach-toast", error.message, "error");
-      }
-    }
-
-    async function mentorUpdate(status) {
-      if (!state.currentTaskId) return showToast("mentor-toast", "Open a task first.", "error");
-      try {
-        const payload = {
-          email: document.getElementById("mentor-email").value.trim(),
-          role: "mentor",
-          taskId: state.currentTaskId,
-          mentorStatus: status,
-          sessionToken: state.sessionToken,
-          feedback: collectFeedback()
-        };
-        await apiPost("mentor_update", payload);
-        showToast("mentor-toast", status === "Approved" ? "Approved and parent send can continue." : "Returned to coach.", "success");
-        loadMentorDashboard();
-      } catch (error) {
-        showToast("mentor-toast", error.message, "error");
-      }
-    }
-
-    async function runAction(action) {
-      try {
-        const payload = {
-          email: document.getElementById("mentor-email").value.trim(),
-          month: document.getElementById("mentor-month").value,
-          sessionToken: state.sessionToken
-        };
-        const data = await apiPost(action, payload);
-        showToast("mentor-toast", data.message || "Action completed.", "success");
-        loadMentorDashboard();
-      } catch (error) {
-        showToast("mentor-toast", error.message, "error");
-      }
-    }
-
-    function collectFeedback() {
-      return {
-        studentRating: document.getElementById("student-rating").value,
-        gamesPlayed: document.getElementById("games-played").value,
-        wins: document.getElementById("wins").value,
-        draws: document.getElementById("draws").value,
-        losses: document.getElementById("losses").value,
-        ratingChange: document.getElementById("rating-change").value,
-        puzzleActivity: document.getElementById("puzzle-activity").value,
-        bestResult: document.getElementById("best-result").value,
-        puzzleConsistency: document.getElementById("puzzle-consistency").value,
-        skillLevel: document.getElementById("skill-level").value,
-        classPerformance: document.getElementById("class-performance").value,
-        strengths: document.getElementById("strengths").value,
-        improvementAreas: document.getElementById("improvement-areas").value,
-        focusNextMonth: document.getElementById("focus-next-month").value,
-        overallComment: document.getElementById("overall-comment").value,
-        mentorRemark: document.getElementById("mentor-remark").value,
-        mentorNotes: document.getElementById("mentor-notes").value
-      };
-    }
-
-    function buildApiGetUrl(action, params) {
-      // Prefer n8n proxy when configured, because it returns CORS headers for browser fetches.
-      const baseUrl = CONFIG.n8nBaseUrl ? joinUrl(CONFIG.n8nBaseUrl, "eca-feedback-proxy") : CONFIG.appsScriptUrl;
-      if (!baseUrl) throw new Error("Backend URL missing. Add config.js or set the Apps Script URL in the HTML.");
-
-      const url = new URL(baseUrl);
-      url.searchParams.set("action", action);
-      Object.entries(params || {}).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
-      });
-      return url;
-    }
-
-    async function apiGet(action, params) {
-      const url = buildApiGetUrl(action, params);
-      const response = await fetch(url.toString(), { method: "GET" });
-      const text = await response.text();
-      let json;
-      try {
-        json = JSON.parse(text);
-      } catch (error) {
-        throw new Error("Backend did not return JSON. Check Apps Script deployment, n8n proxy, or CORS settings.");
-      }
-      if (!response.ok) throw new Error(json.message || `Request failed with HTTP ${response.status}.`);
-      if (json.ok === false || json.success === false) throw new Error(json.message || "Request failed.");
-      return json.data || json;
-    }
-
-    async function apiPost(action, payload) {
-      const body = new URLSearchParams();
-      body.set("action", action);
-      if (action === "submit_feedback" || action === "mentor_update") {
-        body.set("payload", JSON.stringify(payload));
-      } else {
-        Object.entries(payload || {}).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) body.set(key, value);
-        });
-      }
-      if (!CONFIG.appsScriptUrl) throw new Error("Apps Script URL missing. Add it in config.js or the HTML fallback.");
-      const response = await fetch(CONFIG.appsScriptUrl, { method: "POST", body });
-      const text = await response.text();
-      let json;
-      try {
-        json = JSON.parse(text);
-      } catch (error) {
-        throw new Error("Backend did not return JSON. Check Apps Script deployment or CORS settings.");
-      }
-      if (json.ok === false) throw new Error(json.message || "Request failed.");
-      return json.data || json;
-    }
-
-    async function otpPost(path, payload) {
-      const url = joinUrl(CONFIG.n8nBaseUrl, path);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-      const json = await response.json();
-      if (json.ok === false || json.success === false) throw new Error(json.message || "OTP request failed.");
-      return json.data || json;
-    }
-
-    async function requestOtp() {
-      if (!CONFIG.n8nBaseUrl) return showToast("access-toast", "n8n URL missing. Add the live OTP endpoint first.", "error");
-      const role = document.getElementById("login-role").value;
-      const email = document.getElementById("login-email").value.trim();
-      if (!email) return showToast("access-toast", "Enter an email first.", "error");
-      try {
-        const data = await otpPost("eca-feedback-request-otp", { role, email });
-        showToast("access-toast", data.message || "OTP sent.", "success");
-        setBanner("OTP sent to " + email + ". Enter the code to continue.");
-      } catch (error) {
-        showToast("access-toast", error.message, "error");
-      }
-    }
-
-    async function verifyOtp() {
-      if (!CONFIG.n8nBaseUrl) return showToast("access-toast", "n8n URL missing. Add the live OTP endpoint first.", "error");
-      const role = document.getElementById("login-role").value;
-      const email = document.getElementById("login-email").value.trim();
-      const code = document.getElementById("otp-code").value.trim();
-      if (!email || !code) return showToast("access-toast", "Enter both email and OTP code.", "error");
-      try {
-        const data = await otpPost("eca-feedback-verify-otp", { role, email, code });
-        state.sessionToken = data.sessionToken;
-        state.role = data.role;
-        state.email = data.email;
-        state.month = document.getElementById("global-month").value;
-        document.getElementById("session-role-badge").textContent = role === "mentor" ? "Mentor Verified" : "Coach Verified";
-        showRoleUi(role, email);
-        showToast("access-toast", "Login verified.", "success");
-        setBanner("Verified as " + email + ". Only the relevant workspace is now visible.");
-      } catch (error) {
-        showToast("access-toast", error.message, "error");
-      }
-    }
-
-    function showRoleUi(role, email) {
-      document.querySelectorAll(".tab-btn").forEach((btn) => btn.classList.add("hidden"));
-      document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-      document.querySelector('[data-tab="setup"]').classList.remove("hidden");
-
-      if (role === "coach") {
-        document.querySelector('[data-tab="coach"]').classList.remove("hidden");
-        document.querySelector('[data-tab="coach"]').classList.add("active");
-        document.getElementById("panel-coach").classList.add("active");
-        document.getElementById("coach-email").value = email;
-        document.getElementById("coach-month").value = document.getElementById("global-month").value;
-        loadCoachDashboard();
-      } else {
-        document.querySelector('[data-tab="mentor"]').classList.remove("hidden");
-        document.querySelector('[data-tab="approved"]').classList.remove("hidden");
-        document.querySelector('[data-tab="mentor"]').classList.add("active");
-        document.getElementById("panel-mentor").classList.add("active");
-        document.getElementById("mentor-email").value = email;
-        document.getElementById("mentor-month").value = document.getElementById("global-month").value;
-        loadMentorDashboard();
-        loadApprovedDashboard();
-      }
-    }
-
-    function logout() {
-      state.sessionToken = "";
-      state.role = "";
-      state.email = "";
-      document.getElementById("otp-code").value = "";
-      document.getElementById("session-role-badge").textContent = "Not Logged In";
-      document.querySelectorAll(".tab-btn").forEach((btn) => {
-        if (btn.dataset.tab !== "setup") btn.classList.add("hidden");
-        btn.classList.remove("active");
-      });
-      document.querySelector('[data-tab="setup"]').classList.add("active");
-      document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
-      document.getElementById("panel-access").classList.add("active");
-      setBanner("Logged out. Request a new OTP to enter the relevant workspace.");
-    }
-
-    function badgeClass(status) {
-      const value = String(status || "").toLowerCase();
-      if (value.includes("approve")) return "approved";
-      if (value.includes("return")) return "returned";
-      if (value.includes("submit")) return "submitted";
-      return "pending";
-    }
-
-    function showToast(id, message, type) {
-      const toast = document.getElementById(id);
-      toast.className = `toast show ${type}`;
-      toast.textContent = message;
-    }
-
-    function setBanner(message) {
-      document.getElementById("status-banner").textContent = message;
-    }
-
-    function escapeHtml(value) {
-      return String(value || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;");
-    }
-
-    function joinUrl(base, path) {
-      const cleanBase = String(base || "").replace(/\/+$/, "");
-      const cleanPath = String(path || "").replace(/^\/+/, "");
-      return cleanBase + "/" + cleanPath;
-    }
-  </script>
+      </article>
+    </section>
+  </main>
+  <script src="/assets/app.js"></script>
 </body>
 </html>

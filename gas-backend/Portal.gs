@@ -10,6 +10,7 @@ function doGet(e) {
     if (action === "approved_dashboard") return ok(getApprovedDashboard_(e.parameter.email, e.parameter.month, e.parameter.sessionToken));
     if (action === "task") return ok(getTaskPayload_(e.parameter.taskId, e.parameter.email, e.parameter.role, e.parameter.sessionToken));
     if (action === "fetch_lichess") return ok(fetchLichessForRequest_(e.parameter.taskId, e.parameter.email, e.parameter.role, e.parameter.sessionToken));
+    if (action === "history") return ok(getStudentHistory_(e.parameter.taskId, e.parameter.email, e.parameter.role, e.parameter.sessionToken));
 
     return fail("Unsupported GET action.");
   } catch (error) {

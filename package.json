@@ -1,0 +1,13 @@
+{
+  "name": "eca-feedback-portal-rebuilt",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Vercel-ready Envision Chess Academy feedback portal with Apps Script proxy API.",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,83 +1,127 @@
-# Envision Chess Academy Feedback Portal
+# ECA Feedback Portal 2.0 — Vercel Rebuild
 
-This package now includes:
+This is a rebuilt, Vercel-ready version of the Envision Chess Academy feedback portal.
 
-- a Wix-friendly static frontend
-- a Google Apps Script backend package
-- monthly task automation hooks
-- mentor approval flow
-- parent PDF email flow
+The new approach removes the brittle browser-to-n8n/browser-to-Apps-Script mix. The browser calls Vercel API routes, and Vercel securely forwards requests to Google Apps Script.
+
+## What changed
+
+- Core portal no longer depends on n8n for login or loading students.
+- OTP is handled through the existing Apps Script actions: `request_otp` and `verify_otp`.
+- Every protected request sends `sessionToken`.
+- Vercel API route `/api/proxy` handles CORS and hides the Apps Script URL from frontend code.
+- Mentor/admin workspace includes legacy import, monthly launch, reminders, and approved report review.
+- A new Apps Script `history` endpoint lets mentors see old detailed feedback fields from `Approval_Queue` alongside reduced new feedback records.
 
 ## Files
 
-- [index.html](E:/Feedback/index.html)
-- [styles.css](E:/Feedback/styles.css)
-- [app.js](E:/Feedback/app.js)
-- [config.js](E:/Feedback/config.js)
-- [gas-backend](E:/Feedback/gas-backend)
-
-## How To Test The UI Right Now
-
-1. Open [index.html](E:/Feedback/index.html) in a browser.
-2. Click `Use Demo Data`.
-3. The full coach flow will populate with sample data.
-
-This works even before the backend is deployed.
-
-Current demo identities:
-
-- Student: `Test Student` - `sayantanchandra12@gmail.com`
-- Coach: `Test Coach` - `sayatanchandra2@gmail.com`
-- Mentor: `Test Mentor` - `sayatanchandra1999@gmail.com`
-
-## How To Make It Live
-
-1. Create a new Google Apps Script project.
-2. Copy all files from [gas-backend](E:/Feedback/gas-backend) into that project.
-3. Deploy it as a web app:
-   - Execute as: `Me`
-   - Who has access: `Anyone`
-4. Copy the deployed web app URL.
-5. Paste that URL into [config.js](E:/Feedback/config.js):
-
-```js
-window.FEEDBACK_PORTAL_CONFIG = {
-  apiBaseUrl: "YOUR_DEPLOYED_APPS_SCRIPT_WEB_APP_URL"
-};
+```txt
+index.html                  Main app shell
+assets/styles.css            Premium responsive layout
+assets/app.js                All portal logic
+api/proxy.js                 Vercel serverless proxy to Apps Script
+api/n8n.js                   Optional Vercel proxy to n8n workflows
+gas-backend/                 Updated Apps Script backend files
+n8n-workflows/               Existing n8n workflows kept for automations
+.env.example                 Vercel environment variable template
+vercel.json                  Static + API deployment config
 ```
 
-6. Open the frontend again and sign in with a coach or mentor email that exists in your sheets.
+## Deploy on Vercel
 
-## Required Backend Setup
+### 1. Push these files to GitHub
 
-Run these once after deployment by opening the frontend and using the Automation Controls:
+Put the contents of this folder at the root of your GitHub repo.
 
-- `Run initialize`
-- `Install triggers`
-- `Launch tasks now`
+### 2. Import the repo in Vercel
 
-Also add mentor emails in the `Portal_Mentors` sheet created in the responses spreadsheet.
+Use default Vercel settings. There is no build step required.
 
-## Existing Sheets Used
+### 3. Add Environment Variables in Vercel
 
-- Roster spreadsheet for `Coaches`, `Students`, `Roster_Index`
-- Responses spreadsheet for:
-  - `Portal_Tasks`
-  - `Portal_Submissions`
-  - `Portal_Mentors`
+Go to:
 
-## Security Note
+`Vercel Project → Settings → Environment Variables`
 
-This first working version uses email-based access so you can test quickly on Wix.
+Add:
 
-Before going fully public, add one of these:
+```txt
+APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYED_WEB_APP_ID/exec
+```
 
-- OTP by email
-- magic link sign-in
-- password or admin-controlled token layer
+Optional:
 
-## Wix Hosting
+```txt
+N8N_BASE_URL=https://your-n8n-domain.com/webhook
+```
 
-You can host the frontend files on a static host and embed them in Wix, or paste the HTML/CSS/JS into a custom embed/custom code area if your Wix setup allows it.
+The portal core works without `N8N_BASE_URL`.
 
-The backend stays in Google Apps Script, not in Wix.
+### 4. Redeploy
+
+After adding environment variables, redeploy the Vercel project.
+
+## Update Google Apps Script
+
+The frontend assumes the Apps Script backend supports your existing actions:
+
+- `ping`
+- `available_months`
+- `request_otp`
+- `verify_otp`
+- `coach_dashboard`
+- `mentor_dashboard`
+- `approved_dashboard`
+- `task`
+- `fetch_lichess`
+- `submit_feedback`
+- `mentor_update`
+- `initialize`
+- `sync_legacy`
+- `launch_tasks`
+- `send_reminders`
+- `install_triggers`
+
+This package includes an updated `gas-backend/Portal.gs` with this extra route:
+
+```js
+if (action === "history") return ok(getStudentHistory_(e.parameter.taskId, e.parameter.email, e.parameter.role, e.parameter.sessionToken));
+```
+
+It also includes a new file:
+
+```txt
+gas-backend/History.gs
+```
+
+Copy all files in `gas-backend/` into your Apps Script project, then deploy a new Web App version.
+
+## First live checklist
+
+1. Copy updated `gas-backend` files into Apps Script.
+2. Deploy Apps Script as Web App.
+3. Paste the `/exec` deployment URL into Vercel `APPS_SCRIPT_URL`.
+4. Redeploy Vercel.
+5. Open the portal.
+6. Login as mentor/admin.
+7. Run `Initialize Sheets`.
+8. Run `Import Old Approval Data`.
+9. Run `Launch Current Month` if current month tasks are missing.
+10. Login as coach and load students.
+
+## n8n role now
+
+n8n should be optional orchestration, not required for the portal to load.
+
+Recommended use:
+
+- scheduled monthly launch
+- reminder emails
+- mentor notification enrichment
+- future PDF/WhatsApp automation
+
+The portal can still call n8n through `/api/n8n?endpoint=...` once `N8N_BASE_URL` is configured, but the normal coach/mentor flow does not depend on it.
+
+## Why this should fix the current issue
+
+The previous version had OTP routed through frontend n8n endpoints while the Apps Script already had OTP actions. Some dashboard calls also depended on a valid `sessionToken`. This rebuild keeps the session token in one state object and attaches it to every protected call.
