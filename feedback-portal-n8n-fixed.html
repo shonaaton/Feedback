@@ -708,10 +708,12 @@
     <div class="foot">Envision Chess Academy · Feedback Operations Portal · n8n-first single-file HTML for Wix embedding</div>
   </div>
 
-  <script src="config.js"></script>
+  <script src="config.js" onerror="console.warn('config.js not found; using built-in backend fallback')"></script>
   <script>
+    const FALLBACK_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAUwBpue9e0pCa0D-8fml3yDDknftZ8o9LGqipaJnfl2EFYxuqGGHDfT27j3TQT8e76A/exec";
+
     const CONFIG = {
-      appsScriptUrl: (window.FEEDBACK_PORTAL_CONFIG && window.FEEDBACK_PORTAL_CONFIG.apiBaseUrl) || "",
+      appsScriptUrl: (window.FEEDBACK_PORTAL_CONFIG && window.FEEDBACK_PORTAL_CONFIG.apiBaseUrl) || FALLBACK_APPS_SCRIPT_URL,
       n8nBaseUrl: (window.FEEDBACK_PORTAL_CONFIG && window.FEEDBACK_PORTAL_CONFIG.n8nBaseUrl) || "",
       mentorEmail: "contact@envisionchessacademy.com"
     };
@@ -807,7 +809,7 @@
       await loadMonths();
       document.getElementById("mentor-email").value = CONFIG.mentorEmail;
       document.getElementById("login-email").value = CONFIG.mentorEmail;
-      setBanner(CONFIG.appsScriptUrl ? "Live backend connected. Sign in with OTP to open the correct workspace." : "Backend URL missing. Add the live endpoint before using this portal.");
+      setBanner((CONFIG.appsScriptUrl || CONFIG.n8nBaseUrl) ? "Live backend connected. Sign in with OTP to open the correct workspace." : "Backend URL missing. Add the live endpoint before using this portal.");
     }
 
     function switchTab(tab, button) {
@@ -1101,15 +1103,31 @@
       };
     }
 
-    async function apiGet(action, params) {
-      const url = new URL(CONFIG.appsScriptUrl);
+    function buildApiGetUrl(action, params) {
+      // Prefer n8n proxy when configured, because it returns CORS headers for browser fetches.
+      const baseUrl = CONFIG.n8nBaseUrl ? joinUrl(CONFIG.n8nBaseUrl, "eca-feedback-proxy") : CONFIG.appsScriptUrl;
+      if (!baseUrl) throw new Error("Backend URL missing. Add config.js or set the Apps Script URL in the HTML.");
+
+      const url = new URL(baseUrl);
       url.searchParams.set("action", action);
       Object.entries(params || {}).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
       });
-      const response = await fetch(url.toString());
-      const json = await response.json();
-      if (json.ok === false) throw new Error(json.message || "Request failed.");
+      return url;
+    }
+
+    async function apiGet(action, params) {
+      const url = buildApiGetUrl(action, params);
+      const response = await fetch(url.toString(), { method: "GET" });
+      const text = await response.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (error) {
+        throw new Error("Backend did not return JSON. Check Apps Script deployment, n8n proxy, or CORS settings.");
+      }
+      if (!response.ok) throw new Error(json.message || `Request failed with HTTP ${response.status}.`);
+      if (json.ok === false || json.success === false) throw new Error(json.message || "Request failed.");
       return json.data || json;
     }
 
@@ -1123,8 +1141,15 @@
           if (value !== undefined && value !== null) body.set(key, value);
         });
       }
+      if (!CONFIG.appsScriptUrl) throw new Error("Apps Script URL missing. Add it in config.js or the HTML fallback.");
       const response = await fetch(CONFIG.appsScriptUrl, { method: "POST", body });
-      const json = await response.json();
+      const text = await response.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch (error) {
+        throw new Error("Backend did not return JSON. Check Apps Script deployment or CORS settings.");
+      }
       if (json.ok === false) throw new Error(json.message || "Request failed.");
       return json.data || json;
     }
