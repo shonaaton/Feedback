@@ -24,6 +24,7 @@ function doPost(e) {
     var action = (e.parameter.action || "").trim();
 
     if (action === "initialize") return ok(initializePortalSheets());
+    if (action === "store_otp") return ok(storeOtp_(e.parameter.email, e.parameter.role, e.parameter.code, e.parameter.expiresAt));
     if (action === "request_otp") return ok(requestOtp_(e.parameter.email, e.parameter.role));
     if (action === "verify_otp") return ok(verifyOtp_(e.parameter.email, e.parameter.role, e.parameter.code));
     if (action === "install_triggers") {

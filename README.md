@@ -125,3 +125,19 @@ The portal can still call n8n through `/api/n8n?endpoint=...` once `N8N_BASE_URL
 ## Why this should fix the current issue
 
 The previous version had OTP routed through frontend n8n endpoints while the Apps Script already had OTP actions. Some dashboard calls also depended on a valid `sessionToken`. This rebuild keeps the session token in one state object and attaches it to every protected call.
+
+## v3 OTP through n8n
+
+This version sends OTP requests through n8n:
+
+- `/api/n8n?endpoint=eca-feedback-request-otp`
+- `/api/n8n?endpoint=eca-feedback-verify-otp`
+
+Required Vercel env vars:
+
+```text
+APPS_SCRIPT_URL=https://script.google.com/macros/s/YOUR_DEPLOYED_WEB_APP_ID/exec
+N8N_BASE_URL=https://your-n8n-domain.com/webhook
+```
+
+Important: in the n8n `Issue Session Token` node, do not create a random token. Use the `sessionToken` returned by Apps Script. The dashboard calls still go through Apps Script and Apps Script validates the session token.

@@ -132,6 +132,42 @@ function otpEmailKey_(email) {
   return "OTP|" + sanitizeEmail(email);
 }
 
+function storeOtp_(email, role, code, expiresAt) {
+  var normalizedRole = String(role || "").toLowerCase();
+  var normalizedEmail = sanitizeEmail(email);
+  var normalizedCode = String(code || "").replace(/\s+/g, "").trim();
+  if (!normalizedEmail) throw new Error("Email is required.");
+  if (normalizedRole !== "coach" && normalizedRole !== "mentor") throw new Error("Role must be coach or mentor.");
+  if (!/^\d{6}$/.test(normalizedCode)) throw new Error("A valid 6-digit OTP is required.");
+
+  if (normalizedRole === "coach") {
+    assertCoachEmail(normalizedEmail);
+  } else {
+    assertMentorEmail(normalizedEmail);
+  }
+
+  var expiryMs = new Date(expiresAt || "").getTime();
+  if (isNaN(expiryMs)) expiryMs = new Date().getTime() + (10 * 60 * 1000);
+  var ttlSeconds = Math.max(60, Math.min(600, Math.floor((expiryMs - new Date().getTime()) / 1000)));
+
+  var payload = JSON.stringify({
+    code: normalizedCode,
+    email: normalizedEmail,
+    role: normalizedRole,
+    createdAt: new Date().getTime(),
+    expiresAt: expiryMs,
+    used: false,
+    source: "n8n"
+  });
+
+  CacheService.getScriptCache().put(otpKey_(normalizedRole, normalizedEmail), normalizedCode, ttlSeconds);
+  CacheService.getScriptCache().put(otpEmailKey_(normalizedEmail), normalizedCode, ttlSeconds);
+  PropertiesService.getScriptProperties().setProperty(otpKey_(normalizedRole, normalizedEmail), payload);
+  PropertiesService.getScriptProperties().setProperty(otpEmailKey_(normalizedEmail), payload);
+
+  return { message: "OTP stored.", email: normalizedEmail, role: normalizedRole, expiresAt: new Date(expiryMs).toISOString() };
+}
+
 function requestOtp_(email, role) {
   var normalizedRole = String(role || "").toLowerCase();
   var normalizedEmail = sanitizeEmail(email);

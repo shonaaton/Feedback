@@ -30,3 +30,12 @@
 - [ ] Save Draft.
 - [ ] Submit to Mentor.
 - [ ] Login as mentor and Approve/Return.
+
+## OTP v3 checklist
+
+- [ ] Add `N8N_BASE_URL` in Vercel environment variables.
+- [ ] Import/activate the n8n OTP workflow.
+- [ ] Update Apps Script `Portal.gs` and `Helpers.gs` from `gas-backend/`.
+- [ ] Deploy Apps Script as a New Version.
+- [ ] Replace the n8n `Issue Session Token` node code with the code in `n8n-workflows/eca-feedback-otp-v3-fix-notes.md`.
+- [ ] Redeploy Vercel.

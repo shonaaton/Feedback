@@ -128,7 +128,7 @@
     if (!state.email) return setBanner('Enter email first.', 'error');
     setButtonBusy($('send-otp-btn'), true, 'Sending…');
     try {
-      await apiPost('request_otp', { email: state.email, role: state.role });
+      await apiN8nPost('eca-feedback-request-otp', { email: state.email, role: state.role });
       $('otp-row').classList.add('show');
       $('session-pill').textContent = 'OTP sent';
       $('session-pill').className = 'status-pill warn';
@@ -145,7 +145,7 @@
     if (!code) return setBanner('Enter OTP code.', 'error');
     setButtonBusy($('verify-otp-btn'), true, 'Verifying…');
     try {
-      const data = await apiPost('verify_otp', { email: state.email, role: state.role, code });
+      const data = await apiN8nPost('eca-feedback-verify-otp', { email: state.email, role: state.role, code });
       state.sessionToken = data.sessionToken || data.token || '';
       if (!state.sessionToken) throw new Error('OTP verified but no sessionToken was returned by Apps Script. Redeploy the backend.');
       openWorkspace();
@@ -498,6 +498,17 @@
   async function apiPost(action, params = {}) {
     const body = { action, ...params };
     const res = await fetch('/api/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    return parseApiResponse(res);
+  }
+
+  async function apiN8nPost(endpoint, params = {}) {
+    const url = new URL('/api/n8n', window.location.origin);
+    url.searchParams.set('endpoint', endpoint);
+    const res = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params || {})
+    });
     return parseApiResponse(res);
   }
 
