@@ -1,0 +1,75 @@
+{
+  "name": "ECA Feedback Mentor Action",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-mentor-action",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "mentor-action-webhook",
+      "name": "Mentor Action Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-360, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nreturn [{ json: {\n  email: body.email || 'contact@envisionchessacademy.com',\n  role: 'mentor',\n  taskId: body.taskId || '',\n  mentorStatus: body.mentorStatus || 'Approved',\n  feedback: body.feedback || body\n}}];"
+      },
+      "id": "extract-mentor-payload",
+      "name": "Extract Mentor Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-120, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_APPS_SCRIPT_WEBAPP_URL",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "action", "value": "mentor_update" },
+            { "name": "payload", "value": "={{ JSON.stringify($json) }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mentor-update-apps-script",
+      "name": "Mentor Update Apps Script",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [120, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "mentor-action-response",
+      "name": "Mentor Action Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [360, 0]
+    }
+  ],
+  "connections": {
+    "Mentor Action Webhook": {
+      "main": [[{ "node": "Extract Mentor Payload", "type": "main", "index": 0 }]]
+    },
+    "Extract Mentor Payload": {
+      "main": [[{ "node": "Mentor Update Apps Script", "type": "main", "index": 0 }]]
+    },
+    "Mentor Update Apps Script": {
+      "main": [[{ "node": "Mentor Action Response", "type": "main", "index": 0 }]]
+    }
+  }
+}

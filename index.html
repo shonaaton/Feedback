@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Envision Chess Academy Feedback Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Envision Chess Academy</p>
+        <h1>Monthly Feedback Portal</h1>
+        <p class="hero__text">
+          Coaches submit, mentors review, and parents receive approved reports without anyone leaving the portal.
+        </p>
+        <div class="hero__actions">
+          <a href="#access-panel" class="button button--primary">Open Portal</a>
+          <button type="button" class="button button--secondary" id="demo-fill-button">Use Demo Data</button>
+        </div>
+        <p class="hero__note">
+          Static Wix-friendly frontend. Google Apps Script powers the data, Lichess fetch, approvals, reminders, and emails.
+        </p>
+      </div>
+      <div class="hero__board" aria-hidden="true">
+        <div class="board-card board-card--light"></div>
+        <div class="board-card board-card--dark"></div>
+        <div class="board-piece board-piece--king"></div>
+        <div class="board-piece board-piece--queen"></div>
+      </div>
+    </header>
+
+    <div class="notice-bar" id="status-banner">Portal ready. Connect your Apps Script web app URL in <code>config.js</code> to test live data.</div>
+
+    <main class="main-grid">
+      <section class="panel panel--login" id="access-panel">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Access</p>
+            <h2>Sign in</h2>
+          </div>
+          <span class="badge badge--gold" id="mode-badge">Coach</span>
+        </div>
+
+        <div class="mode-toggle" role="tablist" aria-label="Portal mode">
+          <button type="button" class="mode-toggle__button is-active" data-role-tab="coach">Coach</button>
+          <button type="button" class="mode-toggle__button" data-role-tab="mentor">Mentor</button>
+        </div>
+
+        <form class="login-form" id="login-form">
+          <label>
+            <span>Email address</span>
+            <input type="email" id="email-input" placeholder="coach@envisionchessacademy.com" required>
+          </label>
+          <label>
+            <span>Month</span>
+            <select id="month-input">
+              <option value="">Loading real months...</option>
+            </select>
+          </label>
+          <div class="form-actions">
+            <button type="submit" class="button button--primary">Load portal</button>
+            <button type="button" class="button button--ghost" id="reset-session-button">Reset</button>
+          </div>
+        </form>
+
+        <div class="quick-help">
+          <h3>Testing notes</h3>
+          <p>For the first live version, email-based access is used so you can test quickly on Wix. Stronger sign-in can be layered in later.</p>
+        </div>
+      </section>
+
+      <section class="panel panel--dashboard">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Coach Dashboard</p>
+            <h2 id="dashboard-title">Waiting for coach login</h2>
+          </div>
+          <span class="badge badge--gold" id="coach-summary-badge">0 Pending</span>
+        </div>
+
+        <div class="summary-row" id="coach-summary-row">
+          <article class="summary-card">
+            <strong id="summary-active">0</strong>
+            <span>Active students</span>
+          </article>
+          <article class="summary-card">
+            <strong id="summary-submitted">0</strong>
+            <span>Submitted</span>
+          </article>
+          <article class="summary-card">
+            <strong id="summary-pending">0</strong>
+            <span>Pending</span>
+          </article>
+          <article class="summary-card">
+            <strong id="summary-returned">0</strong>
+            <span>Returned</span>
+          </article>
+        </div>
+
+        <div class="list-shell">
+          <div class="list-shell__header">
+            <h3>Students for this month</h3>
+            <button type="button" class="button button--ghost" id="refresh-dashboard-button">Refresh</button>
+          </div>
+          <div class="student-list" id="coach-task-list">
+            <article class="empty-state">
+              <h3>No coach data loaded yet</h3>
+              <p>Sign in as a coach to load active students and feedback status.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel--focus">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Workflow</p>
+            <h2>What this portal now handles</h2>
+          </div>
+        </div>
+        <div class="feature-stack">
+          <article class="feature-card">
+            <h3>One-click Lichess data</h3>
+            <p>Rating, games, wins, draws, losses, rating change, puzzle activity, and best result are fetched through the backend.</p>
+          </article>
+          <article class="feature-card">
+            <h3>Protected system fields</h3>
+            <p>Month, student identity, coach identity, and batch information should come from backend data, not manual typing.</p>
+          </article>
+          <article class="feature-card">
+            <h3>Mentor editing before approval</h3>
+            <p>Mentors can update coach-written fields, approve, or return the report for changes.</p>
+          </article>
+          <article class="feature-card">
+            <h3>Monthly automation</h3>
+            <p>Task launch on the 26th, coach reminders, mentor alerts, and parent PDF delivery all live in the backend package.</p>
+          </article>
+          <article class="feature-card">
+            <h3>n8n-friendly backend</h3>
+            <p>n8n can be used to fetch, normalize, and repair legacy data so the portal stays clean and coaches avoid wrong inputs.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel panel--mentor">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Mentor Dashboard</p>
+            <h2 id="mentor-title">Waiting for mentor login</h2>
+          </div>
+          <span class="badge badge--gold" id="mentor-summary-badge">0 Reviews</span>
+        </div>
+
+        <div class="mentor-toolbar">
+          <button type="button" class="button button--secondary mentor-only" id="mentor-launch-button">Activate feedbacks manually</button>
+        </div>
+
+        <div class="summary-row" id="mentor-summary-row">
+          <article class="summary-card">
+            <strong id="mentor-pending">0</strong>
+            <span>Pending review</span>
+          </article>
+          <article class="summary-card">
+            <strong id="mentor-approved">0</strong>
+            <span>Approved</span>
+          </article>
+          <article class="summary-card">
+            <strong id="mentor-returned">0</strong>
+            <span>Returned</span>
+          </article>
+          <article class="summary-card">
+            <strong id="mentor-overdue">0</strong>
+            <span>Overdue</span>
+          </article>
+        </div>
+
+        <div class="list-shell">
+          <div class="list-shell__header">
+            <h3>Review queue</h3>
+            <button type="button" class="button button--ghost" id="refresh-mentor-button">Refresh</button>
+          </div>
+          <div class="review-list" id="mentor-task-list">
+            <article class="empty-state">
+              <h3>No mentor data loaded yet</h3>
+              <p>Sign in as a mentor to load pending approvals.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel--form">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Feedback</p>
+            <h2 id="form-title">Open a task to start feedback</h2>
+          </div>
+          <span class="badge badge--gold" id="current-task-badge">No task selected</span>
+        </div>
+
+        <div class="form-layout">
+          <article class="form-block">
+            <div class="form-block__header">
+              <h3>Auto-filled from database</h3>
+              <button type="button" class="button button--ghost" id="refresh-task-button">Refresh task</button>
+            </div>
+            <div class="field-grid">
+              <label>
+                <span>Student name</span>
+                <input type="text" id="student-name" disabled>
+              </label>
+              <label>
+                <span>Coach name</span>
+                <input type="text" id="coach-name" disabled>
+              </label>
+              <label>
+                <span>Batch code</span>
+                <input type="text" id="batch-code" disabled>
+              </label>
+              <label>
+                <span>Month</span>
+                <input type="text" id="feedback-month" disabled>
+              </label>
+            </div>
+          </article>
+
+          <article class="form-block">
+            <div class="form-block__header">
+              <h3>Auto-fetched from Lichess</h3>
+              <button type="button" class="button button--primary" id="fetch-lichess-button">Fetch last month activity</button>
+            </div>
+            <div class="field-grid">
+              <label>
+                <span>Student rating</span>
+                <input type="text" id="student-rating" disabled>
+              </label>
+              <label>
+                <span>Games played</span>
+                <input type="text" id="games-played" disabled>
+              </label>
+              <label>
+                <span>Wins</span>
+                <input type="text" id="wins" disabled>
+              </label>
+              <label>
+                <span>Draws</span>
+                <input type="text" id="draws" disabled>
+              </label>
+              <label>
+                <span>Losses</span>
+                <input type="text" id="losses" disabled>
+              </label>
+              <label>
+                <span>Rating change</span>
+                <input type="text" id="rating-change" disabled>
+              </label>
+              <label>
+                <span>Puzzle activity</span>
+                <input type="text" id="puzzle-activity" disabled>
+              </label>
+              <label>
+                <span>Best result</span>
+                <input type="text" id="best-result" disabled>
+              </label>
+            </div>
+          </article>
+
+          <article class="form-block">
+            <form id="feedback-form">
+              <div class="form-block__header">
+                <h3>Coach inputs and mentor review</h3>
+                <span class="inline-note" id="editor-mode-note">Coach mode</span>
+              </div>
+
+              <div class="field-grid">
+                <label>
+                  <span>Puzzle consistency</span>
+                  <select id="puzzle-consistency" required>
+                    <option value="">Select</option>
+                    <option>Excellent</option>
+                    <option>Good</option>
+                    <option>Average</option>
+                    <option>Poor</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Skill level</span>
+                  <select id="skill-level" required>
+                    <option value="">Select</option>
+                    <option>Excellent</option>
+                    <option>Good</option>
+                    <option>Average</option>
+                    <option>Needs Support</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Class performance</span>
+                  <select id="class-performance" required>
+                    <option value="">Select</option>
+                    <option>Excellent</option>
+                    <option>Good</option>
+                    <option>Average</option>
+                    <option>Poor</option>
+                  </select>
+                </label>
+              </div>
+
+              <div class="field-stack">
+                <label>
+                  <span>Strengths</span>
+                  <textarea rows="4" id="strengths" required></textarea>
+                </label>
+                <label>
+                  <span>Improvement areas</span>
+                  <textarea rows="4" id="improvement-areas" required></textarea>
+                </label>
+                <label>
+                  <span>Focus for next month</span>
+                  <textarea rows="4" id="focus-next-month" required></textarea>
+                </label>
+                <label>
+                  <span>Overall comment</span>
+                  <textarea rows="5" id="overall-comment" required></textarea>
+                </label>
+                <label>
+                  <span>Remark for mentor only</span>
+                  <textarea rows="4" id="mentor-remark"></textarea>
+                </label>
+                <label class="mentor-only">
+                  <span>Mentor notes</span>
+                  <textarea rows="4" id="mentor-notes"></textarea>
+                </label>
+              </div>
+
+              <div class="form-actions">
+                <button type="button" class="button button--ghost" id="save-draft-button">Save draft</button>
+                <button type="submit" class="button button--primary" id="submit-feedback-button">Submit to mentor</button>
+                <button type="button" class="button button--secondary mentor-only" id="approve-button">Approve and email parent</button>
+                <button type="button" class="button button--ghost mentor-only" id="return-button">Return to coach</button>
+              </div>
+            </form>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel panel--automation">
+        <div class="panel__header">
+          <div>
+            <p class="section-tag">Automation Controls</p>
+            <h2>Backend setup and testing</h2>
+          </div>
+          <span class="badge badge--gold">Apps Script</span>
+        </div>
+
+        <div class="automation-grid">
+          <article class="feature-card">
+            <h3>Initialize sheets</h3>
+            <p>Create the normalized task and submission tabs used by the portal backend.</p>
+            <button type="button" class="button button--ghost automation-action" data-action="initialize">Run initialize</button>
+          </article>
+          <article class="feature-card">
+            <h3>Install triggers</h3>
+            <p>Set monthly launch and reminder triggers from inside the deployed backend.</p>
+            <button type="button" class="button button--ghost automation-action" data-action="install_triggers">Install triggers</button>
+          </article>
+          <article class="feature-card">
+            <h3>Launch this month</h3>
+            <p>Create pending tasks immediately for active students assigned to active coaches.</p>
+            <button type="button" class="button button--ghost automation-action" data-action="launch_tasks">Launch tasks now</button>
+          </article>
+          <article class="feature-card">
+            <h3>Import old feedbacks</h3>
+            <p>Pull existing approved and pending feedbacks from the legacy approval sheet into the portal.</p>
+            <button type="button" class="button button--ghost automation-action" data-action="sync_legacy">Import legacy data</button>
+          </article>
+          <article class="feature-card">
+            <h3>Send reminders</h3>
+            <p>Send coach reminders for tasks still pending or returned.</p>
+            <button type="button" class="button button--ghost automation-action" data-action="send_reminders">Send reminders</button>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

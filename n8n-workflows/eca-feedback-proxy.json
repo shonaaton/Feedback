@@ -1,0 +1,81 @@
+{
+  "name": "ECA Feedback Proxy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "eca-feedback-proxy",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "proxy-webhook",
+      "name": "Proxy Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-320, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const q = $input.first().json.query || {};\nconst qs = Object.keys(q).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(q[k])).join('&');\nreturn [{ json: { action: q.action || 'ping', qs } }];"
+      },
+      "id": "build-query",
+      "name": "Build Query",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-80, 0]
+    },
+    {
+      "parameters": {
+        "url": "=YOUR_APPS_SCRIPT_WEBAPP_URL?{{$json.qs}}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "call-apps-script",
+      "name": "Call Apps Script",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [160, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "return-response",
+      "name": "Return Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [400, 0]
+    }
+  ],
+  "connections": {
+    "Proxy Webhook": {
+      "main": [[{ "node": "Build Query", "type": "main", "index": 0 }]]
+    },
+    "Build Query": {
+      "main": [[{ "node": "Call Apps Script", "type": "main", "index": 0 }]]
+    },
+    "Call Apps Script": {
+      "main": [[{ "node": "Return Response", "type": "main", "index": 0 }]]
+    }
+  }
+}

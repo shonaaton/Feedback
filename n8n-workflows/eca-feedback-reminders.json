@@ -1,0 +1,47 @@
+{
+  "name": "ECA Feedback Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 15 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-reminder-trigger",
+      "name": "9 PM IST Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [-280, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_APPS_SCRIPT_WEBAPP_URL",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "action", "value": "send_reminders" },
+            { "name": "email", "value": "contact@envisionchessacademy.com" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "trigger-reminders",
+      "name": "Trigger Reminder Send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [-40, 0]
+    }
+  ],
+  "connections": {
+    "9 PM IST Trigger": {
+      "main": [[{ "node": "Trigger Reminder Send", "type": "main", "index": 0 }]]
+    }
+  }
+}

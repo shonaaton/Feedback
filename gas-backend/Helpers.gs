@@ -1,0 +1,196 @@
+function jsonResponse(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function ok(data) {
+  return jsonResponse({ ok: true, data: data });
+}
+
+function fail(message) {
+  return jsonResponse({ ok: false, message: message });
+}
+
+function getCurrentMonthLabel() {
+  return Utilities.formatDate(new Date(), PORTAL_CONFIG.app.timezone, "MMMM yyyy");
+}
+
+function normalizeMonthLabel(input) {
+  if (!input) return getCurrentMonthLabel();
+  var date = new Date(input);
+  if (!isNaN(date.getTime())) {
+    return Utilities.formatDate(date, PORTAL_CONFIG.app.timezone, "MMMM yyyy");
+  }
+  return String(input).trim();
+}
+
+function compactMonthLabel(label) {
+  var date = new Date(label);
+  if (!isNaN(date.getTime())) {
+    return Utilities.formatDate(date, PORTAL_CONFIG.app.timezone, "MMM yyyy");
+  }
+  return String(label).trim();
+}
+
+function nowStamp() {
+  return Utilities.formatDate(new Date(), PORTAL_CONFIG.app.timezone, "yyyy-MM-dd HH:mm:ss");
+}
+
+function makeId(prefix) {
+  return prefix + "-" + Utilities.getUuid().split("-")[0].toUpperCase();
+}
+
+function getSheet(spreadsheetId, sheetName) {
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) throw new Error("Missing sheet: " + sheetName);
+  return sheet;
+}
+
+function ensureSheet(spreadsheetId, sheetName, headers) {
+  var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = spreadsheet.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(sheetName);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  } else {
+    var existing = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+    if (existing.join("|") !== headers.join("|")) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
+  }
+  return sheet;
+}
+
+function readObjects(sheet) {
+  var values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  var headers = values[0];
+  return values.slice(1).filter(function (row) {
+    return row.join("").trim() !== "";
+  }).map(function (row, index) {
+    var item = {};
+    headers.forEach(function (header, columnIndex) {
+      item[header] = row[columnIndex];
+    });
+    item.__rowNumber = index + 2;
+    return item;
+  });
+}
+
+function appendObject(sheet, headers, object) {
+  var row = headers.map(function (header) {
+    return object[header] !== undefined ? object[header] : "";
+  });
+  sheet.appendRow(row);
+}
+
+function updateObject(sheet, headers, rowNumber, object) {
+  var row = headers.map(function (header) {
+    return object[header] !== undefined ? object[header] : "";
+  });
+  sheet.getRange(rowNumber, 1, 1, headers.length).setValues([row]);
+}
+
+function findByKey(items, key, value) {
+  return items.find(function (item) {
+    return String(item[key]) === String(value);
+  });
+}
+
+function parsePayload(raw) {
+  return raw ? JSON.parse(raw) : {};
+}
+
+function sanitizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function mentorEmails() {
+  var sheet = ensureSheet(PORTAL_CONFIG.spreadsheetIds.responses, PORTAL_CONFIG.sheetNames.mentorConfig, ["Mentor_Name", "Mentor_Email", "Status"]);
+  var sheetEmails = readObjects(sheet)
+    .filter(function (row) { return String(row.Status).toLowerCase() !== "inactive"; })
+    .map(function (row) { return sanitizeEmail(row.Mentor_Email); })
+    .filter(Boolean);
+
+  var defaults = (PORTAL_CONFIG.defaults && PORTAL_CONFIG.defaults.mentorEmails) || [];
+  var merged = sheetEmails.concat(defaults.map(sanitizeEmail)).filter(Boolean);
+  return merged.filter(function (email, index) {
+    return merged.indexOf(email) === index;
+  });
+}
+
+function requestOtp_(email, role) {
+  var normalizedRole = String(role || "").toLowerCase();
+  var normalizedEmail = sanitizeEmail(email);
+  if (!normalizedEmail) throw new Error("Email is required.");
+  if (normalizedRole !== "coach" && normalizedRole !== "mentor") throw new Error("Role must be coach or mentor.");
+
+  if (normalizedRole === "coach") {
+    assertCoachEmail(normalizedEmail);
+  } else {
+    assertMentorEmail(normalizedEmail);
+  }
+
+  var code = String(Math.floor(100000 + Math.random() * 900000));
+  CacheService.getScriptCache().put("OTP|" + normalizedRole + "|" + normalizedEmail, code, 600);
+
+  MailApp.sendEmail({
+    to: normalizedEmail,
+    subject: PORTAL_CONFIG.app.title + " login code",
+    htmlBody: [
+      "<div style='font-family:Segoe UI,Arial,sans-serif;max-width:560px'>",
+      "<h2 style='color:#5A1372'>Your login code</h2>",
+      "<p>Use this one-time code to sign in to the Envision Chess Academy feedback portal.</p>",
+      "<div style='font-size:32px;font-weight:800;letter-spacing:0.18em;color:#5A1372;margin:18px 0'>", code, "</div>",
+      "<p>This code expires in 10 minutes.</p>",
+      "</div>"
+    ].join("")
+  });
+
+  return { message: "OTP sent.", expiresInMinutes: 10 };
+}
+
+function verifyOtp_(email, role, code) {
+  var normalizedRole = String(role || "").toLowerCase();
+  var normalizedEmail = sanitizeEmail(email);
+  var cached = CacheService.getScriptCache().get("OTP|" + normalizedRole + "|" + normalizedEmail);
+  if (!cached) throw new Error("OTP expired. Request a new code.");
+  if (String(cached) !== String(code || "").trim()) throw new Error("Incorrect OTP.");
+
+  var sessionToken = Utilities.getUuid();
+  CacheService.getScriptCache().put("SESSION|" + sessionToken, JSON.stringify({
+    email: normalizedEmail,
+    role: normalizedRole
+  }), 43200);
+  CacheService.getScriptCache().remove("OTP|" + normalizedRole + "|" + normalizedEmail);
+
+  return {
+    message: "Login verified.",
+    sessionToken: sessionToken,
+    email: normalizedEmail,
+    role: normalizedRole
+  };
+}
+
+function getSession_(sessionToken) {
+  if (!sessionToken) throw new Error("Session token missing.");
+  var cached = CacheService.getScriptCache().get("SESSION|" + sessionToken);
+  if (!cached) throw new Error("Session expired. Please log in again.");
+  return JSON.parse(cached);
+}
+
+function assertSession_(sessionToken, expectedRole, expectedEmail) {
+  var session = getSession_(sessionToken);
+  if (expectedRole && session.role !== String(expectedRole).toLowerCase()) {
+    throw new Error("This session cannot access that section.");
+  }
+  if (expectedEmail && sanitizeEmail(expectedEmail) !== session.email) {
+    throw new Error("This session does not match the requested email.");
+  }
+  return session;
+}

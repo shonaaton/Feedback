@@ -1,0 +1,110 @@
+{
+  "name": "ECA Feedback Submit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-submit",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "submit-webhook",
+      "name": "Submit Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nreturn [{ json: {\n  email: body.email || '',\n  role: 'coach',\n  taskId: body.taskId || '',\n  mode: body.mode || 'submit',\n  feedback: body.feedback || body\n}}];"
+      },
+      "id": "extract-submit-fields",
+      "name": "Extract Submit Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "YOUR_APPS_SCRIPT_WEBAPP_URL",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "action", "value": "submit_feedback" },
+            { "name": "payload", "value": "={{ JSON.stringify($json) }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "submit-to-apps-script",
+      "name": "Submit To Apps Script",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [40, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst task = (result.data && result.data.task) || result.task || {};\nreturn [{ json: {\n  mentorEmail: 'contact@envisionchessacademy.com',\n  subject: `[ECA] Feedback Submitted - ${task.studentName || 'Student'}`,\n  html: `<div style=\"font-family:Segoe UI,Arial,sans-serif;max-width:620px\"><h2 style=\"color:#5A1372\">Feedback Submitted For Review</h2><p><strong>Student:</strong> ${task.studentName || ''}<br><strong>Coach:</strong> ${task.coachName || ''}<br><strong>Month:</strong> ${task.month || ''}</p><p>Please open the mentor queue to review this report.</p></div>`,\n  apiResponse: result\n}}];"
+      },
+      "id": "build-mentor-email",
+      "name": "Build Mentor Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.mentorEmail }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "email-mentor",
+      "name": "Email Mentor",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [520, -80],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.apiResponse }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "submit-response",
+      "name": "Submit Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 88]
+    }
+  ],
+  "connections": {
+    "Submit Webhook": {
+      "main": [[{ "node": "Extract Submit Fields", "type": "main", "index": 0 }]]
+    },
+    "Extract Submit Fields": {
+      "main": [[{ "node": "Submit To Apps Script", "type": "main", "index": 0 }]]
+    },
+    "Submit To Apps Script": {
+      "main": [[{ "node": "Build Mentor Email", "type": "main", "index": 0 }]]
+    },
+    "Build Mentor Email": {
+      "main": [
+        [{ "node": "Email Mentor", "type": "main", "index": 0 }],
+        [{ "node": "Submit Response", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}
