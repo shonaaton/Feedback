@@ -152,7 +152,7 @@
             <div>
               <p class="eyebrow dark">Admin Tools</p>
               <h2>Monthly operations</h2>
-              <p>Run only when needed. These actions call Apps Script through Vercel.</p>
+              <p>Run only when needed. These actions are handled by n8n workflows and Google Sheets.</p>
             </div>
           </div>
           <div class="admin-grid">
@@ -254,7 +254,7 @@
         <div class="drawer-view hidden" id="drawer-history">
           <section class="panel-block">
             <h3>Student history</h3>
-            <p class="muted">The rebuilt Apps Script add-on includes a history endpoint. If it is not installed yet, this panel will show a graceful message instead of breaking the task flow.</p>
+            <p class="muted">The n8n read workflow reads old detailed feedback directly from the legacy Google Sheet tab.</p>
             <div id="history-list" class="history-list"></div>
           </section>
         </div>

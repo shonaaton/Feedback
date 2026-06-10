@@ -19,7 +19,7 @@ function collectBody(req) {
 
 module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return sendJson(res, 200, { ok: true });
-  if (!N8N_BASE_URL) return sendJson(res, 400, { ok: false, message: 'N8N_BASE_URL is not configured. Core portal does not need n8n.' });
+  if (!N8N_BASE_URL) return sendJson(res, 400, { ok: false, message: 'N8N_BASE_URL is not configured in Vercel.' });
 
   const endpoint = String(req.query.endpoint || '').replace(/^\/+|\/+$/g, '');
   if (!endpoint) return sendJson(res, 400, { ok: false, message: 'Missing endpoint query, e.g. /api/n8n?endpoint=eca-feedback-launch-month' });

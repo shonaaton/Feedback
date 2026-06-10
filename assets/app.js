@@ -54,7 +54,7 @@
 
   function init() {
     bindEvents();
-    setBanner('Portal ready. Add APPS_SCRIPT_URL in Vercel env and deploy Apps Script to go live.');
+    setBanner('Portal ready. n8n-only mode. Add N8N_BASE_URL in Vercel and activate the n8n workflows.');
     pingBackend();
     loadMonths();
   }
@@ -91,7 +91,7 @@
     try {
       const data = await apiGet('ping', {});
       $('connection-label').textContent = 'Backend connected';
-      $('connection-detail').textContent = data.message || 'Apps Script is live through the Vercel proxy.';
+      $('connection-detail').textContent = data.message || 'n8n backend is live.';
       setBanner('Backend connected. Send OTP to start.', 'success');
     } catch (error) {
       $('connection-label').textContent = 'Backend not connected';
@@ -128,7 +128,7 @@
     if (!state.email) return setBanner('Enter email first.', 'error');
     setButtonBusy($('send-otp-btn'), true, 'Sending…');
     try {
-      await apiN8nPost('eca-feedback-request-otp-sheet', { email: state.email, role: state.role });
+      await apiN8nPost('eca-feedback-auth-request', { email: state.email, role: state.role });
       $('otp-row').classList.add('show');
       $('session-pill').textContent = 'OTP sent';
       $('session-pill').className = 'status-pill warn';
@@ -145,9 +145,9 @@
     if (!code) return setBanner('Enter OTP code.', 'error');
     setButtonBusy($('verify-otp-btn'), true, 'Verifying…');
     try {
-      const data = await apiN8nPost('eca-feedback-verify-otp-sheet', { email: state.email, role: state.role, code });
+      const data = await apiN8nPost('eca-feedback-auth-verify', { email: state.email, role: state.role, code });
       state.sessionToken = data.sessionToken || data.token || '';
-      if (!state.sessionToken) throw new Error('OTP verified but no sessionToken was returned by Apps Script. Redeploy the backend.');
+      if (!state.sessionToken) throw new Error('OTP verified but no sessionToken was returned by n8n. Check the auth workflow.');
       openWorkspace();
       setBanner('Login verified. Workspace opened.', 'success');
       await reloadCurrentView();
@@ -347,7 +347,7 @@
       const data = await apiGet('history', sessionParams({ email: state.email, role: state.role, taskId }));
       container.innerHTML = historyCards(data);
     } catch (error) {
-      container.innerHTML = emptyState('History endpoint is not installed yet. Copy gas-backend/History.gs and the patched Portal.gs into Apps Script, then redeploy. The current task flow still works.');
+      container.innerHTML = emptyState('History data is unavailable. Check the n8n read workflow and the old feedback sheet tab name.');
     }
   }
 
@@ -488,17 +488,14 @@
   function syncMonthControls() { if (state.month) { $('month-select').value = state.month; $('workspace-month').value = state.month; } }
 
   async function apiGet(action, params = {}) {
-    const url = new URL('/api/proxy', window.location.origin);
-    url.searchParams.set('action', action);
-    Object.entries(params).forEach(([key, val]) => { if (val !== undefined && val !== null && val !== '') url.searchParams.set(key, val); });
-    const res = await fetch(url.toString(), { method: 'GET' });
-    return parseApiResponse(res);
+    // n8n-only backend. Even reads are POSTed so the workflow receives a clean body.
+    return apiN8nPost('eca-feedback-api', { action, ...params });
   }
 
   async function apiPost(action, params = {}) {
-    const body = { action, ...params };
-    const res = await fetch('/api/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    return parseApiResponse(res);
+    const writeActions = ['submit_feedback', 'mentor_update'];
+    const endpoint = writeActions.includes(action) ? 'eca-feedback-write' : 'eca-feedback-api';
+    return apiN8nPost(endpoint, { action, ...params });
   }
 
   async function apiN8nPost(endpoint, params = {}) {

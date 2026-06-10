@@ -1,0 +1,525 @@
+{
+  "name": "ECA Feedback Auth - n8n Google Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-auth-request",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "auth-request-webhook",
+      "name": "Auth Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        -200
+      ],
+      "webhookId": "eca-feedback-auth-request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst email = String(body.email || '').trim().toLowerCase();\nlet role = String(body.role || '').trim().toLowerCase();\nif (role === 'admin') role = 'mentor';\nif (!email) throw new Error('Email is required');\nif (!['coach','mentor'].includes(role)) throw new Error('Role must be coach or mentor');\nconst createdAt = new Date().toISOString();\nconst expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();\nconst code = String(Math.floor(100000 + Math.random() * 900000));\nconst otpId = `${email}|${role}|${Date.now()}|${Math.random().toString(36).slice(2,10)}`;\nreturn [{ json: { OtpId: otpId, Email: email, Role: role, Code: code, ExpiresAt: expiresAt, Used: 'FALSE', SessionToken: '', CreatedAt: createdAt, UsedAt: '' } }];"
+      },
+      "id": "generate-otp",
+      "name": "Generate OTP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OTP_Store",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "OtpId": "={ $json.OtpId }",
+            "Email": "={ $json.Email }",
+            "Role": "={ $json.Role }",
+            "Code": "={ $json.Code }",
+            "ExpiresAt": "={ $json.ExpiresAt }",
+            "Used": "={ $json.Used }",
+            "SessionToken": "={ $json.SessionToken }",
+            "CreatedAt": "={ $json.CreatedAt }",
+            "UsedAt": "={ $json.UsedAt }"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "OtpId",
+              "displayName": "OtpId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Code",
+              "displayName": "Code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ExpiresAt",
+              "displayName": "ExpiresAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Used",
+              "displayName": "Used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SessionToken",
+              "displayName": "SessionToken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CreatedAt",
+              "displayName": "CreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UsedAt",
+              "displayName": "UsedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "store-otp-in-sheet",
+      "name": "Store OTP in Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -380,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Generate OTP').item.json.Email }}",
+        "subject": "Envision Chess Academy login code",
+        "message": "=<div style=\"font-family:Segoe UI,Arial,sans-serif;max-width:560px;padding:24px\"><h2 style=\"color:#5A1372;margin:0 0 12px\">Your login code</h2><p style=\"color:#444;line-height:1.6\">Use this one-time code to sign in to the Envision Chess Academy feedback portal.</p><div style=\"font-size:36px;font-weight:800;letter-spacing:0.2em;color:#5A1372;background:#f7f1fb;border-radius:12px;padding:18px 24px;margin:20px 0;display:inline-block\">{{ $('Generate OTP').item.json.Code }}</div><p style=\"color:#888;font-size:0.9rem\">This code expires in 10 minutes. Do not share it with anyone.</p></div>",
+        "options": {
+          "senderName": "Envision Chess Academy"
+        }
+      },
+      "id": "email-otp",
+      "name": "Email OTP",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, data: { message: 'OTP sent. Check your email.', email: $('Generate OTP').item.json.Email, role: $('Generate OTP').item.json.Role } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "auth-request-response",
+      "name": "Auth Request Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-auth-verify",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "auth-verify-webhook",
+      "name": "Auth Verify Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        220
+      ],
+      "webhookId": "eca-feedback-auth-verify"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst email = String(body.email || '').trim().toLowerCase();\nlet role = String(body.role || '').trim().toLowerCase();\nconst code = String(body.code || '').trim();\nif (role === 'admin') role = 'mentor';\nif (!email) throw new Error('Email is required');\nif (!role) throw new Error('Role is required');\nif (!code) throw new Error('Code is required');\nif (!['coach','mentor'].includes(role)) throw new Error('Role must be coach or mentor');\nreturn [{ json: { email, role, code } }];"
+      },
+      "id": "extract-verify-payload",
+      "name": "Extract Verify Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OTP_Store",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-otp-store",
+      "name": "Read OTP Store",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -380,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Extract Verify Payload').item.json;\nconst rows = $input.all().map(i => i.json);\nconst norm = v => String(v || '').trim().toLowerCase();\nconst matches = rows\n  .filter(r => norm(r.Email) === req.email)\n  .filter(r => norm(r.Role) === req.role)\n  .filter(r => String(r.Code || '').trim() === req.code)\n  .filter(r => norm(r.Used) !== 'true')\n  .sort((a,b) => new Date(b.CreatedAt || 0).getTime() - new Date(a.CreatedAt || 0).getTime());\nif (!matches.length) throw new Error('OTP not found or already used. Please request a fresh code.');\nconst otp = matches[0];\nconst exp = new Date(otp.ExpiresAt || '').getTime();\nif (!exp || Number.isNaN(exp) || Date.now() > exp) throw new Error('OTP expired. Please request a fresh code.');\nconst token = 'sess_n8n_' + Math.random().toString(36).slice(2) + '_' + Date.now().toString(36);\nreturn [{ json: { OtpId: otp.OtpId, Email: req.email, Role: req.role, Code: otp.Code, ExpiresAt: otp.ExpiresAt, Used: 'TRUE', SessionToken: token, CreatedAt: otp.CreatedAt || '', UsedAt: new Date().toISOString() } }];"
+      },
+      "id": "find-valid-otp",
+      "name": "Find Valid OTP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OTP_Store",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "OtpId": "={ $json.OtpId }",
+            "Email": "={ $json.Email }",
+            "Role": "={ $json.Role }",
+            "Code": "={ $json.Code }",
+            "ExpiresAt": "={ $json.ExpiresAt }",
+            "Used": "={ $json.Used }",
+            "SessionToken": "={ $json.SessionToken }",
+            "CreatedAt": "={ $json.CreatedAt }",
+            "UsedAt": "={ $json.UsedAt }"
+          },
+          "matchingColumns": [
+            "OtpId"
+          ],
+          "schema": [
+            {
+              "id": "OtpId",
+              "displayName": "OtpId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Role",
+              "displayName": "Role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Code",
+              "displayName": "Code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ExpiresAt",
+              "displayName": "ExpiresAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Used",
+              "displayName": "Used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "SessionToken",
+              "displayName": "SessionToken",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CreatedAt",
+              "displayName": "CreatedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UsedAt",
+              "displayName": "UsedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mark-otp-used",
+      "name": "Mark OTP Used",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, data: { message: 'Login verified.', email: $('Find Valid OTP').item.json.Email, role: $('Find Valid OTP').item.json.Role, sessionToken: $('Find Valid OTP').item.json.SessionToken } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "auth-verify-response",
+      "name": "Auth Verify Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Auth Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate OTP": {
+      "main": [
+        [
+          {
+            "node": "Store OTP in Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store OTP in Sheet": {
+      "main": [
+        [
+          {
+            "node": "Email OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email OTP": {
+      "main": [
+        [
+          {
+            "node": "Auth Request Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auth Verify Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Verify Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Verify Payload": {
+      "main": [
+        [
+          {
+            "node": "Read OTP Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read OTP Store": {
+      "main": [
+        [
+          {
+            "node": "Find Valid OTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Valid OTP": {
+      "main": [
+        [
+          {
+            "node": "Mark OTP Used",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark OTP Used": {
+      "main": [
+        [
+          {
+            "node": "Auth Verify Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

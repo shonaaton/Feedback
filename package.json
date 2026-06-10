@@ -2,7 +2,7 @@
   "name": "eca-feedback-portal-rebuilt",
   "version": "2.0.0",
   "private": true,
-  "description": "Vercel-ready Envision Chess Academy feedback portal with Apps Script proxy API.",
+  "description": "Vercel-ready Envision Chess Academy feedback portal with n8n-only Google Sheets backend.",
   "scripts": {
     "dev": "vercel dev",
     "start": "vercel dev"

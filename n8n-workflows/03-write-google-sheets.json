@@ -1,0 +1,601 @@
+{
+  "name": "ECA Feedback Write - n8n Google Sheets Append",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-write",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "write-webhook",
+      "name": "Write Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ],
+      "webhookId": "eca-feedback-write"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst query = raw.query || {};\nreturn [{ json: { ...query, ...body, action: body.action || query.action || 'ping' } }];"
+      },
+      "id": "normalize-write-request",
+      "name": "Normalize Write Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -650,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OTP_Store",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-otp-store",
+      "name": "Read OTP Store",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Normalize Write Request').item.json;\nconst sessions = $input.all().map(i=>i.json);\nconst norm = v => String(v||'').trim().toLowerCase();\nconst token = String(request.sessionToken || '').trim();\nif (!token) throw new Error('Missing session token. Please login again.');\nconst match = sessions.filter(r=>String(r.SessionToken||'').trim()===token && norm(r.Used)==='true').sort((a,b)=>new Date(b.UsedAt||b.CreatedAt||0)-new Date(a.UsedAt||a.CreatedAt||0))[0];\nif (!match) throw new Error('Invalid or expired session. Please login again.');\nconst usedAt = new Date(match.UsedAt||match.CreatedAt||'').getTime();\nif (!usedAt || Number.isNaN(usedAt) || Date.now() > usedAt + 12*60*60*1000) throw new Error('Session expired. Please login again.');\nreturn [{ json: { ...request, sessionEmail: norm(match.Email), sessionRole: norm(match.Role) } }];"
+      },
+      "id": "validate-write-session",
+      "name": "Validate Write Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -150,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Portal_Tasks",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-portal-tasks",
+      "name": "Read Portal Tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $('Validate Write Session').item.json;\nconst tasks = $input.all().map(i=>i.json);\nconst norm = v => String(v||'').trim().toLowerCase();\nconst get = (row, keys, fallback='') => { for (const k of keys) { if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]; } return fallback; };\nlet payload = req.payload || req;\nif (typeof payload === 'string') payload = JSON.parse(payload);\nconst feedback = payload.feedback || {};\nconst taskId = String(payload.taskId || req.taskId || '').trim();\nif (!taskId) throw new Error('Missing taskId.');\nconst task = tasks.find(t=>String(get(t,['Task_ID','taskId'])).trim() === taskId);\nif (!task) throw new Error('Task not found in Portal_Tasks.');\nconst coachEmail = norm(get(task,['Coach_Email','coachEmail']));\nif (req.sessionRole === 'coach' && coachEmail !== req.sessionEmail) throw new Error('This task is not assigned to this coach.');\nconst action = req.action;\nconst mode = payload.mode || req.mode || (action === 'mentor_update' ? 'mentor' : 'submit');\nif (action === 'mentor_update' && req.sessionRole !== 'mentor') throw new Error('Mentor access required.');\nconst now = new Date().toISOString();\nconst mentorStatus = payload.mentorStatus || (action === 'mentor_update' ? 'Approved' : 'Pending');\nconst submissionStatus = action === 'mentor_update' ? 'Reviewed' : (mode === 'draft' ? 'Draft' : 'Submitted');\nconst row = {\n  Submission_ID: 'SUB-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,7).toUpperCase(),\n  Task_ID: taskId,\n  Month: get(task,['Month']),\n  Coach_ID: get(task,['Coach_ID']),\n  Coach_Name: get(task,['Coach_Name']),\n  Coach_Email: get(task,['Coach_Email']),\n  Student_ID: get(task,['Student_ID']),\n  Student_Name: get(task,['Student_Name']),\n  Student_Email: get(task,['Student_Email']),\n  Lichess_ID: get(task,['Lichess_ID']),\n  Batch_Code: get(task,['Batch_Code']),\n  Student_Rating: feedback.studentRating || get(task,['Student_Rating']),\n  Games_Played: feedback.gamesPlayed || '',\n  Wins: feedback.wins || '',\n  Draws: feedback.draws || '',\n  Losses: feedback.losses || '',\n  Rating_Change: feedback.ratingChange || '',\n  Puzzle_Activity: feedback.puzzleActivity || '',\n  Best_Result: feedback.bestResult || '',\n  Puzzle_Consistency: feedback.puzzleConsistency || '',\n  Skill_Level: feedback.skillLevel || '',\n  Class_Performance: feedback.classPerformance || '',\n  Strengths: feedback.strengths || '',\n  Improvement_Areas: feedback.improvementAreas || '',\n  Focus_Next_Month: feedback.focusNextMonth || '',\n  Overall_Comment: feedback.overallComment || '',\n  Mentor_Remark: feedback.mentorRemark || '',\n  Mentor_Notes: feedback.mentorNotes || '',\n  Submission_Status: submissionStatus,\n  Mentor_Status: mentorStatus,\n  Submitted_On: action === 'submit_feedback' ? now : '',\n  Reviewed_On: action === 'mentor_update' && mentorStatus === 'Approved' ? now : '',\n  Returned_On: action === 'mentor_update' && mentorStatus === 'Returned' ? now : '',\n  Last_Updated: now,\n  Mode: mode\n};\nreturn [{ json: row }];"
+      },
+      "id": "build-submission-row",
+      "name": "Build Submission Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        350,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Portal_Submissions",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Submission_ID": "={ $json.Submission_ID }",
+            "Task_ID": "={ $json.Task_ID }",
+            "Month": "={ $json.Month }",
+            "Coach_ID": "={ $json.Coach_ID }",
+            "Coach_Name": "={ $json.Coach_Name }",
+            "Coach_Email": "={ $json.Coach_Email }",
+            "Student_ID": "={ $json.Student_ID }",
+            "Student_Name": "={ $json.Student_Name }",
+            "Student_Email": "={ $json.Student_Email }",
+            "Lichess_ID": "={ $json.Lichess_ID }",
+            "Batch_Code": "={ $json.Batch_Code }",
+            "Student_Rating": "={ $json.Student_Rating }",
+            "Games_Played": "={ $json.Games_Played }",
+            "Wins": "={ $json.Wins }",
+            "Draws": "={ $json.Draws }",
+            "Losses": "={ $json.Losses }",
+            "Rating_Change": "={ $json.Rating_Change }",
+            "Puzzle_Activity": "={ $json.Puzzle_Activity }",
+            "Best_Result": "={ $json.Best_Result }",
+            "Puzzle_Consistency": "={ $json.Puzzle_Consistency }",
+            "Skill_Level": "={ $json.Skill_Level }",
+            "Class_Performance": "={ $json.Class_Performance }",
+            "Strengths": "={ $json.Strengths }",
+            "Improvement_Areas": "={ $json.Improvement_Areas }",
+            "Focus_Next_Month": "={ $json.Focus_Next_Month }",
+            "Overall_Comment": "={ $json.Overall_Comment }",
+            "Mentor_Remark": "={ $json.Mentor_Remark }",
+            "Mentor_Notes": "={ $json.Mentor_Notes }",
+            "Submission_Status": "={ $json.Submission_Status }",
+            "Mentor_Status": "={ $json.Mentor_Status }",
+            "Submitted_On": "={ $json.Submitted_On }",
+            "Reviewed_On": "={ $json.Reviewed_On }",
+            "Returned_On": "={ $json.Returned_On }",
+            "Last_Updated": "={ $json.Last_Updated }",
+            "Mode": "={ $json.Mode }"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Submission_ID",
+              "displayName": "Submission_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Task_ID",
+              "displayName": "Task_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Month",
+              "displayName": "Month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Coach_ID",
+              "displayName": "Coach_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Coach_Name",
+              "displayName": "Coach_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Coach_Email",
+              "displayName": "Coach_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Student_ID",
+              "displayName": "Student_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Student_Name",
+              "displayName": "Student_Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Student_Email",
+              "displayName": "Student_Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Lichess_ID",
+              "displayName": "Lichess_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Batch_Code",
+              "displayName": "Batch_Code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Student_Rating",
+              "displayName": "Student_Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Games_Played",
+              "displayName": "Games_Played",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Wins",
+              "displayName": "Wins",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Draws",
+              "displayName": "Draws",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Losses",
+              "displayName": "Losses",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rating_Change",
+              "displayName": "Rating_Change",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Puzzle_Activity",
+              "displayName": "Puzzle_Activity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Best_Result",
+              "displayName": "Best_Result",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Puzzle_Consistency",
+              "displayName": "Puzzle_Consistency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Skill_Level",
+              "displayName": "Skill_Level",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Class_Performance",
+              "displayName": "Class_Performance",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Improvement_Areas",
+              "displayName": "Improvement_Areas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Focus_Next_Month",
+              "displayName": "Focus_Next_Month",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Overall_Comment",
+              "displayName": "Overall_Comment",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mentor_Remark",
+              "displayName": "Mentor_Remark",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mentor_Notes",
+              "displayName": "Mentor_Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submission_Status",
+              "displayName": "Submission_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mentor_Status",
+              "displayName": "Mentor_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Submitted_On",
+              "displayName": "Submitted_On",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reviewed_On",
+              "displayName": "Reviewed_On",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Returned_On",
+              "displayName": "Returned_On",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Last_Updated",
+              "displayName": "Last_Updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Mode",
+              "displayName": "Mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "append-submission",
+      "name": "Append Submission",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, data: { message: 'Saved in Portal_Submissions.', task: { taskId: $('Build Submission Row').item.json.Task_ID, studentName: $('Build Submission Row').item.json.Student_Name, studentId: $('Build Submission Row').item.json.Student_ID, coachName: $('Build Submission Row').item.json.Coach_Name, coachEmail: $('Build Submission Row').item.json.Coach_Email, month: $('Build Submission Row').item.json.Month, batchCode: $('Build Submission Row').item.json.Batch_Code, lichessId: $('Build Submission Row').item.json.Lichess_ID, taskStatus: $('Build Submission Row').item.json.Mentor_Status === 'Approved' ? 'Approved' : $('Build Submission Row').item.json.Submission_Status, submissionStatus: $('Build Submission Row').item.json.Submission_Status, mentorStatus: $('Build Submission Row').item.json.Mentor_Status, feedback: { studentRating: $('Build Submission Row').item.json.Student_Rating, gamesPlayed: $('Build Submission Row').item.json.Games_Played, wins: $('Build Submission Row').item.json.Wins, draws: $('Build Submission Row').item.json.Draws, losses: $('Build Submission Row').item.json.Losses, ratingChange: $('Build Submission Row').item.json.Rating_Change, puzzleActivity: $('Build Submission Row').item.json.Puzzle_Activity, bestResult: $('Build Submission Row').item.json.Best_Result, puzzleConsistency: $('Build Submission Row').item.json.Puzzle_Consistency, skillLevel: $('Build Submission Row').item.json.Skill_Level, classPerformance: $('Build Submission Row').item.json.Class_Performance, strengths: $('Build Submission Row').item.json.Strengths, improvementAreas: $('Build Submission Row').item.json.Improvement_Areas, focusNextMonth: $('Build Submission Row').item.json.Focus_Next_Month, overallComment: $('Build Submission Row').item.json.Overall_Comment, mentorRemark: $('Build Submission Row').item.json.Mentor_Remark, mentorNotes: $('Build Submission Row').item.json.Mentor_Notes } } } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "write-response",
+      "name": "Write Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        850,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Write Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Write Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Write Request": {
+      "main": [
+        [
+          {
+            "node": "Read OTP Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read OTP Store": {
+      "main": [
+        [
+          {
+            "node": "Validate Write Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Write Session": {
+      "main": [
+        [
+          {
+            "node": "Read Portal Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Portal Tasks": {
+      "main": [
+        [
+          {
+            "node": "Build Submission Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Submission Row": {
+      "main": [
+        [
+          {
+            "node": "Append Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Submission": {
+      "main": [
+        [
+          {
+            "node": "Write Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
