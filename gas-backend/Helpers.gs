@@ -124,6 +124,14 @@ function mentorEmails() {
   });
 }
 
+function otpKey_(role, email) {
+  return "OTP|" + String(role || "").toLowerCase() + "|" + sanitizeEmail(email);
+}
+
+function otpEmailKey_(email) {
+  return "OTP|" + sanitizeEmail(email);
+}
+
 function requestOtp_(email, role) {
   var normalizedRole = String(role || "").toLowerCase();
   var normalizedEmail = sanitizeEmail(email);
@@ -137,7 +145,21 @@ function requestOtp_(email, role) {
   }
 
   var code = String(Math.floor(100000 + Math.random() * 900000));
-  CacheService.getScriptCache().put("OTP|" + normalizedRole + "|" + normalizedEmail, code, 600);
+  var payload = JSON.stringify({
+    code: code,
+    email: normalizedEmail,
+    role: normalizedRole,
+    createdAt: new Date().getTime(),
+    expiresAt: new Date().getTime() + (10 * 60 * 1000),
+    used: false
+  });
+
+  // Store in both CacheService and ScriptProperties. CacheService can occasionally miss after a fresh deployment,
+  // while ScriptProperties gives the verification step a reliable fallback.
+  CacheService.getScriptCache().put(otpKey_(normalizedRole, normalizedEmail), code, 600);
+  CacheService.getScriptCache().put(otpEmailKey_(normalizedEmail), code, 600);
+  PropertiesService.getScriptProperties().setProperty(otpKey_(normalizedRole, normalizedEmail), payload);
+  PropertiesService.getScriptProperties().setProperty(otpEmailKey_(normalizedEmail), payload);
 
   MailApp.sendEmail({
     to: normalizedEmail,
@@ -158,16 +180,56 @@ function requestOtp_(email, role) {
 function verifyOtp_(email, role, code) {
   var normalizedRole = String(role || "").toLowerCase();
   var normalizedEmail = sanitizeEmail(email);
-  var cached = CacheService.getScriptCache().get("OTP|" + normalizedRole + "|" + normalizedEmail);
-  if (!cached) throw new Error("OTP expired. Request a new code.");
-  if (String(cached) !== String(code || "").trim()) throw new Error("Incorrect OTP.");
+  var enteredCode = String(code || "").replace(/\s+/g, "").trim();
+  if (!normalizedEmail) throw new Error("Email is required.");
+  if (!enteredCode) throw new Error("OTP code is required.");
+
+  var keys = [otpKey_(normalizedRole, normalizedEmail), otpEmailKey_(normalizedEmail)];
+  var cached = "";
+  for (var i = 0; i < keys.length; i++) {
+    cached = CacheService.getScriptCache().get(keys[i]);
+    if (cached) break;
+  }
+
+  var propPayload = null;
+  var propKey = "";
+  for (var j = 0; j < keys.length; j++) {
+    var raw = PropertiesService.getScriptProperties().getProperty(keys[j]);
+    if (raw) {
+      propPayload = JSON.parse(raw);
+      propKey = keys[j];
+      break;
+    }
+  }
+
+  if (!cached && !propPayload) throw new Error("OTP expired or not found. Please request a new code.");
+
+  if (propPayload) {
+    if (propPayload.used) throw new Error("OTP already used. Please request a new code.");
+    if (new Date().getTime() > Number(propPayload.expiresAt || 0)) {
+      keys.forEach(function (key) { PropertiesService.getScriptProperties().deleteProperty(key); });
+      throw new Error("OTP expired. Please request a new code.");
+    }
+    if (String(propPayload.code) !== enteredCode) throw new Error("Incorrect OTP.");
+  } else if (String(cached) !== enteredCode) {
+    throw new Error("Incorrect OTP.");
+  }
 
   var sessionToken = Utilities.getUuid();
   CacheService.getScriptCache().put("SESSION|" + sessionToken, JSON.stringify({
     email: normalizedEmail,
     role: normalizedRole
   }), 43200);
-  CacheService.getScriptCache().remove("OTP|" + normalizedRole + "|" + normalizedEmail);
+  PropertiesService.getScriptProperties().setProperty("SESSION|" + sessionToken, JSON.stringify({
+    email: normalizedEmail,
+    role: normalizedRole,
+    expiresAt: new Date().getTime() + (12 * 60 * 60 * 1000)
+  }));
+
+  keys.forEach(function (key) {
+    CacheService.getScriptCache().remove(key);
+    PropertiesService.getScriptProperties().deleteProperty(key);
+  });
 
   return {
     message: "Login verified.",
@@ -179,9 +241,15 @@ function verifyOtp_(email, role, code) {
 
 function getSession_(sessionToken) {
   if (!sessionToken) throw new Error("Session token missing.");
-  var cached = CacheService.getScriptCache().get("SESSION|" + sessionToken);
+  var key = "SESSION|" + sessionToken;
+  var cached = CacheService.getScriptCache().get(key) || PropertiesService.getScriptProperties().getProperty(key);
   if (!cached) throw new Error("Session expired. Please log in again.");
-  return JSON.parse(cached);
+  var session = JSON.parse(cached);
+  if (session.expiresAt && new Date().getTime() > Number(session.expiresAt)) {
+    PropertiesService.getScriptProperties().deleteProperty(key);
+    throw new Error("Session expired. Please log in again.");
+  }
+  return session;
 }
 
 function assertSession_(sessionToken, expectedRole, expectedEmail) {

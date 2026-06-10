@@ -141,7 +141,7 @@
   }
 
   async function verifyOtp() {
-    const code = $('otp-code').value.trim();
+    const code = $('otp-code').value.replace(/\s+/g, '').trim();
     if (!code) return setBanner('Enter OTP code.', 'error');
     setButtonBusy($('verify-otp-btn'), true, 'Verifying…');
     try {
