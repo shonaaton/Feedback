@@ -4,5 +4,5 @@ window.FEEDBACK_PORTAL_CONFIG = {
 
   // Put your n8n production webhook base here if you want the frontend to call n8n proxy endpoints.
   // Example: "https://n8n.srv1170212.hstgr.cloud/webhook/eca-feedback-proxy"
-  n8nBaseUrl: ""
+  n8nBaseUrl: "https://n8n.srv1170212.hstgr.cloud/webhook/eca-feedback-proxy"
 };
