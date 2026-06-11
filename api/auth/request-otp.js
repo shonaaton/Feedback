@@ -19,11 +19,15 @@ module.exports = async function handler(req, res) {
     const otp = await createOtp(db, { email, role: user.role || role });
     const webhook = optionalEnv('N8N_OTP_WEBHOOK_URL');
     if (webhook) {
-      fetch(webhook, {
+      const response = await fetch(webhook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, role: user.role || role, name: user.name || '', code: otp.code })
-      }).catch(() => null);
+      });
+      if (!response.ok) {
+        const raw = await response.text().catch(() => '');
+        throw new Error(`OTP email workflow failed (${response.status}). ${raw || 'Check the n8n webhook.'}`.trim());
+      }
     }
 
     return ok(res, {
