@@ -403,9 +403,16 @@
     if (!state.currentTask) return setBanner('Open a task first.', 'error');
     setButtonBusy($('fetch-lichess-btn'), true, 'Fetching…');
     try {
-      const data = state.demo ? demoData.task.feedback : await apiGet('fetch_lichess', sessionParams({ email: state.email, role: state.role, taskId: state.currentTask.taskId }));
+      const data = state.demo ? demoData.task.feedback : await apiN8nPost('eca-feedback-lichess', sessionParams({
+        email: state.email,
+        role: state.role,
+        taskId: state.currentTask.taskId,
+        month: state.month,
+        lichessId: value(fields.lichessId) || state.currentTask.lichessId || ''
+      }));
       ['studentRating','gamesPlayed','wins','draws','losses','ratingChange','puzzleActivity','bestResult'].forEach(k => setValue(fields[k], data[k]));
-      setBanner('Lichess snapshot fetched.', 'success');
+      state.currentTask.feedback = { ...(state.currentTask.feedback || {}), ...data };
+      setBanner(data.message || 'Lichess snapshot fetched and added to this feedback form.', 'success');
     } catch (error) {
       setBanner(error.message, 'error');
     } finally {

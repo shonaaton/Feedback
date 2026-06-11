@@ -81,3 +81,23 @@ eca-feedback-verify-otp-sheet
 - Dashboard status is calculated from latest submission rows, so old task rows do not need direct updates.
 - Old feedback is read directly from `Feedback_Responses` and displayed in History.
 - Lichess fetch is disabled in this n8n-only build for now; coaches can enter stats manually.
+
+## Lichess fetch module
+
+This build includes a new workflow:
+
+- `n8n-workflows/04-lichess-fetch.json`
+
+Webhook path:
+
+- `eca-feedback-lichess`
+
+What it does:
+
+- Validates the logged-in n8n session from `OTP_Store`
+- Reads the task from `Portal_Tasks`
+- Allows the assigned coach or a mentor/admin to fetch Lichess data
+- Calls Lichess public APIs directly from n8n
+- Fills these form fields in the portal: rating, games, wins, draws, losses, rating change, puzzle activity, best result
+
+Important: after importing the workflow, select your Google Sheets credential in its Google Sheets nodes. No Apps Script is used.

@@ -1,0 +1,200 @@
+{
+  "name": "04-lichess-fetch-n8n",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-feedback-lichess",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "lichess-webhook",
+      "name": "Lichess Fetch Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ],
+      "webhookId": "eca-feedback-lichess"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst norm = value => String(value || '').trim().toLowerCase();\nlet role = norm(body.role || '');\nif (role === 'admin') role = 'mentor';\n\nconst taskId = String(body.taskId || body.Task_ID || '').trim();\nconst email = norm(body.email || body.coachEmail || '');\nconst sessionToken = String(body.sessionToken || body.session_token || '').trim();\nconst lichessId = String(body.lichessId || body.Lichess_ID || '').trim();\nconst month = String(body.month || '').trim();\n\nif (!sessionToken) throw new Error('Missing session token. Please login again.');\nif (!email) throw new Error('Email is required.');\nif (!taskId && !lichessId) throw new Error('Open a task or enter a Lichess ID first.');\n\nreturn [{ json: { taskId, email, role, sessionToken, lichessId, month } }];"
+      },
+      "id": "normalize-lichess-request",
+      "name": "Normalize Lichess Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -650,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "OTP_Store",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-otp-store",
+      "name": "Read OTP Store",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "1S-GPXYvwwk_QYhd4G2GS1uloO5tBx0yq0HoEah9d2F8",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Portal_Tasks",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "read-portal-tasks",
+      "name": "Read Portal Tasks",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        -150,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $items('Normalize Lichess Request')[0].json;\nconst sessions = (() => { try { return $items('Read OTP Store').map(i => i.json); } catch (e) { return []; } })();\nconst tasks = $input.all().map(i => i.json);\n\nconst norm = value => String(value || '').trim().toLowerCase();\nconst get = (row, keys, fallback='') => {\n  for (const k of keys) {\n    if (row && row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k];\n  }\n  return fallback;\n};\n\nfunction validSession() {\n  const token = String(request.sessionToken || '').trim();\n  const requestEmail = norm(request.email || '');\n  let requestRole = norm(request.role || '');\n  if (requestRole === 'admin') requestRole = 'mentor';\n\n  if (!token) throw new Error('Missing session token. Please login again.');\n\n  const usedSessions = sessions\n    .filter(row => ['true','yes','1'].includes(norm(row.Used || row.used)))\n    .sort((a,b) => new Date(b.UsedAt || b.CreatedAt || 0).getTime() - new Date(a.UsedAt || a.CreatedAt || 0).getTime());\n\n  const match = usedSessions.find(row => String(row.SessionToken || row.sessionToken || '').trim() === token);\n\n  if (match) {\n    const usedAt = new Date(match.UsedAt || match.CreatedAt || '').getTime();\n    if (!usedAt || Number.isNaN(usedAt)) throw new Error('Session timestamp missing. Please login again.');\n    if (Date.now() > usedAt + 12 * 60 * 60 * 1000) throw new Error('Session expired. Please login again.');\n    return { email: norm(match.Email || match.email), role: norm(match.Role || match.role), sessionToken: token };\n  }\n\n  // Same practical fallback used in the read/write workflows.\n  if (sessions.length === 0 && token.startsWith('sess_n8n_') && requestEmail) {\n    return { email: requestEmail, role: requestRole || (requestEmail === 'contact@envisionchessacademy.com' ? 'mentor' : 'coach'), sessionToken: token };\n  }\n\n  throw new Error(`Invalid or expired session. Please login again. Debug: sessionsRead=${sessions.length}`);\n}\n\nfunction monthBounds(monthValue) {\n  const raw = String(monthValue || '').trim();\n  let d = raw ? new Date(raw) : new Date();\n  if (Number.isNaN(d.getTime())) {\n    const m = raw.match(/^(\\d{4})-(\\d{2})/);\n    if (m) d = new Date(`${m[1]}-${m[2]}-01T00:00:00.000Z`);\n  }\n  if (Number.isNaN(d.getTime())) d = new Date();\n  const start = new Date(d.getFullYear(), d.getMonth(), 1, 0, 0, 0, 0);\n  const end = new Date(d.getFullYear(), d.getMonth() + 1, 1, 0, 0, 0, 0);\n  return { since: start.getTime(), until: end.getTime(), monthLabel: start.toLocaleString('en-IN', {month:'short', year:'numeric'}) };\n}\n\nconst session = validSession();\nconst taskId = String(request.taskId || '').trim();\nconst task = taskId ? tasks.find(row => String(get(row, ['Task_ID','TaskId','taskId'])).trim() === taskId) : null;\n\nif (taskId && !task) throw new Error('Task not found for Lichess fetch.');\n\nif (task && session.role === 'coach') {\n  const coachEmail = norm(get(task, ['Coach_Email','coachEmail']));\n  if (coachEmail && coachEmail !== session.email) throw new Error('This task is not assigned to this coach.');\n}\n\nlet lichessId = String(request.lichessId || '').trim();\nif (!lichessId && task) lichessId = String(get(task, ['Lichess_ID','Lichess Id','lichessId'])).trim();\nif (!lichessId) throw new Error('No Lichess ID found for this task.');\n\nconst bounds = monthBounds(request.month || get(task || {}, ['Month','month']) || '');\n\nreturn [{ json: {\n  ...request,\n  sessionEmail: session.email,\n  sessionRole: session.role,\n  taskId,\n  studentName: task ? get(task, ['Student_Name','studentName']) : '',\n  lichessId,\n  since: bounds.since,\n  until: bounds.until,\n  monthLabel: bounds.monthLabel\n} }];"
+      },
+      "id": "prepare-lichess-fetch",
+      "name": "Prepare Lichess Fetch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $input.first().json;\nconst username = String(request.lichessId || '').trim();\nconst encoded = encodeURIComponent(username);\n\nif (!username) throw new Error('Lichess ID missing.');\n\nasync function fetchText(url, headers = {}) {\n  const res = await fetch(url, { headers });\n  const text = await res.text();\n  if (!res.ok) {\n    if (res.status === 404) throw new Error(`Lichess user not found: ${username}`);\n    throw new Error(`Lichess request failed (${res.status}): ${text.slice(0, 300)}`);\n  }\n  return text;\n}\n\nasync function fetchJson(url) {\n  const text = await fetchText(url, { 'Accept': 'application/json' });\n  try { return JSON.parse(text); } catch (e) { throw new Error('Lichess profile did not return valid JSON.'); }\n}\n\nconst profile = await fetchJson(`https://lichess.org/api/user/${encoded}`);\n\nconst gamesUrl = new URL(`https://lichess.org/api/games/user/${encoded}`);\ngamesUrl.searchParams.set('since', String(request.since));\ngamesUrl.searchParams.set('until', String(request.until));\ngamesUrl.searchParams.set('max', '200');\ngamesUrl.searchParams.set('rated', 'true');\ngamesUrl.searchParams.set('sort', 'dateDesc');\ngamesUrl.searchParams.set('opening', 'false');\ngamesUrl.searchParams.set('moves', 'false');\ngamesUrl.searchParams.set('pgnInJson', 'false');\ngamesUrl.searchParams.set('tags', 'false');\ngamesUrl.searchParams.set('clocks', 'false');\ngamesUrl.searchParams.set('evals', 'false');\ngamesUrl.searchParams.set('accuracy', 'false');\n\nconst gamesText = await fetchText(gamesUrl.toString(), { 'Accept': 'application/x-ndjson' });\nconst games = gamesText.trim()\n  ? gamesText.trim().split(/\\n+/).map(line => {\n      try { return JSON.parse(line); } catch (e) { return null; }\n    }).filter(Boolean)\n  : [];\n\nconst userLower = username.toLowerCase();\nlet wins = 0, draws = 0, losses = 0, ratingDiffTotal = 0, ratingDiffCount = 0;\nlet bestWin = null;\nlet latestRatingFromGames = null;\nlet firstRatingFromGames = null;\nconst perfCounts = {};\n\nfor (const game of games) {\n  const whiteName = String(game.players?.white?.user?.name || game.players?.white?.user?.id || '').toLowerCase();\n  const blackName = String(game.players?.black?.user?.name || game.players?.black?.user?.id || '').toLowerCase();\n  const color = whiteName === userLower ? 'white' : (blackName === userLower ? 'black' : '');\n  if (!color) continue;\n  const opponentColor = color === 'white' ? 'black' : 'white';\n  const player = game.players?.[color] || {};\n  const opponent = game.players?.[opponentColor] || {};\n  const perf = game.perf || 'standard';\n  perfCounts[perf] = (perfCounts[perf] || 0) + 1;\n\n  if (player.rating && latestRatingFromGames === null) latestRatingFromGames = player.rating;\n  if (player.rating) firstRatingFromGames = player.rating;\n\n  if (typeof player.ratingDiff === 'number') {\n    ratingDiffTotal += player.ratingDiff;\n    ratingDiffCount += 1;\n  }\n\n  if (!game.winner) {\n    draws += 1;\n  } else if (game.winner === color) {\n    wins += 1;\n    const opponentRating = Number(opponent.rating || 0);\n    if (!bestWin || opponentRating > bestWin.opponentRating) {\n      const opponentName = opponent.user?.name || opponent.user?.id || 'opponent';\n      bestWin = { opponentName, opponentRating, perf, date: game.createdAt };\n    }\n  } else {\n    losses += 1;\n  }\n}\n\nconst gamesPlayed = wins + draws + losses;\nconst preferredPerf = Object.keys(perfCounts).sort((a,b) => perfCounts[b] - perfCounts[a])[0] || 'rapid';\nconst perfs = profile.perfs || {};\nconst standardPerf = perfs[preferredPerf] || perfs.rapid || perfs.blitz || perfs.classical || perfs.bullet || {};\nconst puzzlePerf = perfs.puzzle || {};\nconst currentRating = standardPerf.rating || latestRatingFromGames || 'Unrated';\nlet ratingChange = 'N/A';\nif (ratingDiffCount) {\n  ratingChange = ratingDiffTotal > 0 ? `+${ratingDiffTotal}` : String(ratingDiffTotal);\n} else if (latestRatingFromGames !== null && firstRatingFromGames !== null) {\n  const diff = latestRatingFromGames - firstRatingFromGames;\n  ratingChange = diff > 0 ? `+${diff}` : String(diff);\n}\n\nconst puzzleActivity = puzzlePerf.rating\n  ? `Puzzle rating ${puzzlePerf.rating}${puzzlePerf.games ? ` \u00b7 ${puzzlePerf.games} puzzles` : ''}`\n  : 'N/A';\n\nconst bestResult = bestWin\n  ? `Win vs ${bestWin.opponentName}${bestWin.opponentRating ? ` (${bestWin.opponentRating})` : ''}`\n  : (gamesPlayed ? 'No win found this month' : 'No rated games this month');\n\nreturn [{ json: {\n  ok: true,\n  data: {\n    lichessId: username,\n    source: 'lichess',\n    month: request.monthLabel,\n    studentRating: String(currentRating),\n    gamesPlayed: String(gamesPlayed),\n    wins: String(wins),\n    draws: String(draws),\n    losses: String(losses),\n    ratingChange,\n    puzzleActivity,\n    bestResult,\n    perfType: preferredPerf,\n    message: `Lichess snapshot fetched for ${username}: ${gamesPlayed} rated games in ${request.monthLabel}.`\n  }\n} }];"
+      },
+      "id": "fetch-lichess-snapshot",
+      "name": "Fetch Lichess Snapshot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        390,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "lichess-response",
+      "name": "Lichess Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Lichess Fetch Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lichess Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lichess Request": {
+      "main": [
+        [
+          {
+            "node": "Read OTP Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read OTP Store": {
+      "main": [
+        [
+          {
+            "node": "Read Portal Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Portal Tasks": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lichess Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lichess Fetch": {
+      "main": [
+        [
+          {
+            "node": "Fetch Lichess Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lichess Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Lichess Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
