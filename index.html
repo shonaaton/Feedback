@@ -13,7 +13,6 @@
       <div>
         <p class="eyebrow">Envision Chess Academy</p>
         <h1>Feedback Portal 2.0</h1>
-        <p class="hero-copy">A smoother Vercel-first workspace for monthly feedback, mentor review, legacy records, Lichess snapshots, and admin actions.</p>
       </div>
       <div class="hero-card">
         <div class="mini-board" aria-hidden="true">
@@ -36,7 +35,6 @@
         <div>
           <p class="eyebrow dark">Secure access</p>
           <h2>Email OTP login</h2>
-          <p>Coaches see only assigned feedback tasks. Mentors see review queues, approved records, and admin controls.</p>
         </div>
         <span class="status-pill neutral" id="session-pill">Signed out</span>
       </div>
@@ -61,7 +59,6 @@
 
       <div class="action-row">
         <button class="btn gold" id="send-otp-btn">Send OTP</button>
-        <button class="btn ghost" id="demo-btn">Open Demo</button>
         <button class="btn ghost" id="reset-btn">Reset</button>
       </div>
 
@@ -105,7 +102,6 @@
             <div>
               <p class="eyebrow dark">Coach Workspace</p>
               <h2>Assigned feedback tasks</h2>
-              <p>Open a student, fetch Lichess data, save draft, and submit to mentor.</p>
             </div>
             <button class="btn primary" id="load-coach-btn">Load My Students</button>
           </div>
@@ -121,7 +117,6 @@
             <div>
               <p class="eyebrow dark">Mentor Queue</p>
               <h2>Review submissions</h2>
-              <p>Review submitted/returned/pending items, edit if needed, approve or return.</p>
             </div>
             <button class="btn primary" id="load-mentor-btn">Load Queue</button>
           </div>
@@ -137,7 +132,6 @@
             <div>
               <p class="eyebrow dark">Approved & History</p>
               <h2>Approved reports</h2>
-              <p>Mentors can verify old imported reports and recent approved feedbacks.</p>
             </div>
             <button class="btn primary" id="load-approved-btn">Load Approved</button>
           </div>
@@ -152,7 +146,6 @@
             <div>
               <p class="eyebrow dark">Admin Tools</p>
               <h2>Monthly operations</h2>
-              <p>Run only when needed. These actions are handled by n8n workflows and Google Sheets.</p>
             </div>
           </div>
           <div class="admin-grid">
@@ -184,7 +177,6 @@
           <div>
             <p class="eyebrow dark" id="drawer-context">Feedback task</p>
             <h2 id="drawer-title">No student selected</h2>
-            <p id="drawer-subtitle">Open a task from the dashboard.</p>
           </div>
           <button class="icon-btn" id="drawer-close" aria-label="Close">×</button>
         </div>
@@ -193,7 +185,7 @@
 
         <div class="drawer-tabs">
           <button class="drawer-tab active" data-drawer-tab="form">Feedback Form</button>
-          <button class="drawer-tab" data-drawer-tab="history">Old Data & History</button>
+          <button class="drawer-tab" data-drawer-tab="history">History</button>
         </div>
 
         <div class="drawer-view" id="drawer-form">

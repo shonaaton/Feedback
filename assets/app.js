@@ -54,7 +54,7 @@
 
   function init() {
     bindEvents();
-    setBanner('Portal ready. n8n-only mode. Add N8N_BASE_URL in Vercel and activate the n8n workflows.');
+    setBanner('Portal ready.');
     pingBackend();
     loadMonths();
   }
@@ -63,7 +63,6 @@
     $('login-role').addEventListener('change', () => { state.role = $('login-role').value; updateLoginUi(); });
     $('send-otp-btn').addEventListener('click', requestOtp);
     $('verify-otp-btn').addEventListener('click', verifyOtp);
-    $('demo-btn').addEventListener('click', startDemo);
     $('reset-btn').addEventListener('click', resetPortal);
     $('logout-btn').addEventListener('click', resetPortal);
     $('reload-btn').addEventListener('click', reloadCurrentView);
