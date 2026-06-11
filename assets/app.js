@@ -72,8 +72,8 @@
     $('load-approved-btn').addEventListener('click', loadApprovedDashboard);
     $('workspace-month').addEventListener('change', () => { state.month = $('workspace-month').value; $('month-select').value = state.month; reloadCurrentView(); });
     $('month-select').addEventListener('change', () => { state.month = $('month-select').value; $('workspace-month').value = state.month; });
-    $('coach-search').addEventListener('input', () => renderCoachList((state.cache.coach && state.cache.coach.tasks) || []));
-    $('mentor-search').addEventListener('input', () => renderMentorList((state.cache.mentor && state.cache.mentor.tasks) || []));
+    $('coach-search').addEventListener('input', () => renderCoachDashboard(state.cache.coach || null));
+    $('mentor-search').addEventListener('input', () => renderMentorDashboard(state.cache.mentor || null));
     $('approved-search').addEventListener('input', () => renderApprovedList((state.cache.approved && state.cache.approved.tasks) || []));
     $('drawer-close').addEventListener('click', closeDrawer);
     $('drawer-backdrop').addEventListener('click', closeDrawer);
@@ -181,6 +181,12 @@
     $('session-pill').className = 'status-pill good';
     $$('body .mentor-only').forEach(el => el.classList.toggle('hidden', state.role !== 'mentor'));
     switchView(state.role === 'mentor' ? 'mentor' : 'coach');
+    if (state.role === 'mentor') {
+      loadMentorDashboard();
+      loadApprovedDashboard();
+    } else {
+      loadCoachDashboard();
+    }
   }
 
   function resetPortal() {
@@ -220,11 +226,11 @@
       state.cache.coach = data;
       state.month = data.month || state.month;
       syncMonthControls();
-      renderStats($('coach-stats'), data.summary, [ ['active', 'Active Students'], ['submitted', 'Submitted'], ['pending', 'Pending'], ['returned', 'Returned'] ]);
-      renderCoachList(data.tasks || []);
+      renderStats($('coach-stats'), data.summary, [ ['active', 'Open'], ['submitted', 'Submitted'], ['pending', 'Pending'], ['returned', 'Returned'] ]);
+      renderCoachDashboard(data);
       setBanner('Coach tasks loaded.', 'success');
     } catch (error) {
-      renderCoachList([]);
+      renderCoachDashboard({ tasks: [], submittedTasks: [] });
       setBanner(error.message, 'error');
     } finally {
       setButtonBusy($('load-coach-btn'), false, 'Load My Students');
@@ -239,11 +245,11 @@
       state.cache.mentor = data;
       state.month = data.month || state.month;
       syncMonthControls();
-      renderStats($('mentor-stats'), data.summary, [ ['pending', 'Pending Review'], ['approved', 'Approved'], ['returned', 'Returned'], ['overdue', 'Overdue'] ]);
-      renderMentorList(data.tasks || []);
+      renderStats($('mentor-stats'), data.summary, [ ['pending', 'Needs review'], ['approved', 'Approved'], ['returned', 'Returned'], ['overdue', 'Overdue'] ]);
+      renderMentorDashboard(data);
       setBanner('Mentor queue loaded.', 'success');
     } catch (error) {
-      renderMentorList([]);
+      renderMentorDashboard({ tasks: [], completedTasks: [] });
       setBanner(error.message, 'error');
     } finally {
       setButtonBusy($('load-mentor-btn'), false, 'Load Queue');
@@ -270,17 +276,29 @@
     container.innerHTML = defs.map(([key, label]) => `<div class="stat-card"><strong>${Number(summary[key] || 0)}</strong><span>${escapeHtml(label)}</span></div>`).join('');
   }
 
-  function renderCoachList(tasks) {
+  function renderCoachDashboard(data) {
     const needle = $('coach-search').value.trim().toLowerCase();
-    const filtered = filterTasks(tasks, needle);
-    $('coach-list').innerHTML = filtered.length ? filtered.map(taskCard).join('') : emptyState('No students found for this coach and month.');
+    const openTasks = filterTasks((data && data.tasks) || [], needle);
+    const submittedTasks = filterTasks((data && data.submittedTasks) || [], needle);
+    $('coach-list').innerHTML = [
+      sectionHeader('Open tasks', openTasks.length, 'These are the only tasks the coach still needs to complete.'),
+      openTasks.length ? openTasks.map(taskCard).join('') : emptyState('No open tasks for this coach and month.'),
+      sectionHeader('Already submitted', submittedTasks.length, 'Completed feedback stays visible but separate.'),
+      submittedTasks.length ? submittedTasks.map(taskCard).join('') : emptyState('No submitted tasks yet.')
+    ].join('');
     bindOpenButtons();
   }
 
-  function renderMentorList(tasks) {
+  function renderMentorDashboard(data) {
     const needle = $('mentor-search').value.trim().toLowerCase();
-    const filtered = filterTasks(tasks, needle);
-    $('mentor-list').innerHTML = filtered.length ? filtered.map(taskCard).join('') : emptyState('No review items found for this month.');
+    const reviewQueue = filterTasks((data && data.tasks) || [], needle);
+    const completed = filterTasks((data && data.completedTasks) || [], needle);
+    $('mentor-list').innerHTML = [
+      sectionHeader('Review queue', reviewQueue.length, 'Submitted and returned items that still need attention.'),
+      reviewQueue.length ? reviewQueue.map(taskCard).join('') : emptyState('No review items found for this month.'),
+      sectionHeader('Approved', completed.length, 'These are finished and can be checked without mixing them into the queue.'),
+      completed.length ? completed.map(taskCard).join('') : emptyState('No approved records for this month.')
+    ].join('');
     bindOpenButtons();
   }
 
@@ -296,6 +314,16 @@
     return tasks.filter(t => [t.studentName, t.studentId, t.coachName, t.batchCode, t.lichessId, t.taskStatus, t.mentorStatus, t.month].join(' ').toLowerCase().includes(needle));
   }
 
+  function sectionHeader(title, count, subtitle) {
+    return `<div class="list-section">
+      <div>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(subtitle)}</p>
+      </div>
+      <span class="status-pill neutral">${escapeHtml(String(count))}</span>
+    </div>`;
+  }
+
   function taskCard(task) {
     const status = task.mentorStatus || task.taskStatus || 'Pending';
     return `<article class="task-card">
@@ -307,6 +335,7 @@
           <span>Batch ${escapeHtml(task.batchCode || '-')}</span>
           <span>${escapeHtml(task.lichessId || 'No Lichess')}</span>
           <span>${escapeHtml(formatMonth(task.month || state.month))}</span>
+          ${task.submissionStatus ? `<span>${escapeHtml(task.submissionStatus)}</span>` : ''}
         </div>
       </div>
       <div class="action-row">
@@ -356,7 +385,7 @@
     const portalRecords = data.portalRecords || [];
     const blocks = [];
     if (portalRecords.length) {
-      blocks.push(`<h4>New portal records</h4>` + portalRecords.map(row => historyCard('New Feedback', row, ['month','mentorStatus','studentRating','gamesPlayed','bestResult','strengths','improvementAreas','focusNextMonth','overallComment','mentorRemark','mentorNotes'])).join(''));
+      blocks.push(`<h4>New portal records</h4>` + portalRecords.map(row => historyCard('New Feedback', row, ['month','mentorStatus','submissionStatus','studentRating','gamesPlayed','bestResult','strengths','improvementAreas','focusNextMonth','overallComment','mentorRemark','mentorNotes'])).join(''));
     }
     if (legacyRows.length) {
       blocks.push(`<h4>Old detailed feedback records</h4>` + legacyRows.map(row => historyCard('Legacy Feedback', row, ['month','mentorStatus','studentRating','gamesPlayed','resultWdl','ratingChange','bestResult','opening','middlegame','endgame','tactics','thinkingTimeMgmt','attendance','homeworkPractice','puzzleConsistency','coachComment','coachPrivateNotes','mentorNotes'])).join(''));
@@ -365,7 +394,8 @@
   }
 
   function historyCard(title, row, keys) {
-    const cells = keys.filter(k => row[k] !== undefined && row[k] !== '').map(k => `<div class="history-cell"><strong>${escapeHtml(labelize(k))}</strong>${escapeHtml(String(row[k]))}</div>`).join('');
+    const source = row.feedback && typeof row.feedback === 'object' ? { ...row, ...row.feedback } : row;
+    const cells = keys.filter(k => source[k] !== undefined && source[k] !== '').map(k => `<div class="history-cell"><strong>${escapeHtml(labelize(k))}</strong>${escapeHtml(String(source[k]))}</div>`).join('');
     return `<article class="history-card"><h4>${escapeHtml(title)} · ${escapeHtml(formatMonth(row.month || ''))}</h4><div class="history-grid">${cells || '<div class="muted">No details.</div>'}</div></article>`;
   }
 

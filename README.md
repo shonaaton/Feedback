@@ -80,7 +80,7 @@ eca-feedback-verify-otp-sheet
 - Submission and mentor approval are append-only into `Portal_Submissions`.
 - Dashboard status is calculated from latest submission rows, so old task rows do not need direct updates.
 - Old feedback is read directly from `Feedback_Responses` and displayed in History.
-- Lichess fetch is disabled in this n8n-only build for now; coaches can enter stats manually.
+- Lichess fetch is handled by the dedicated n8n workflow `04-lichess-fetch.json`.
 
 ## Lichess fetch module
 
