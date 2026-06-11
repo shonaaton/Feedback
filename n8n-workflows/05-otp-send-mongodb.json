@@ -1,0 +1,119 @@
+{
+  "name": "ECA OTP Send - MongoDB",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-mongo-send-otp",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "otp-send-webhook",
+      "name": "OTP Send Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        0
+      ],
+      "webhookId": "eca-mongo-send-otp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst email = String(body.email || '').trim().toLowerCase();\nconst role = String(body.role || 'coach').trim();\nconst name = String(body.name || 'Envision Chess Academy User').trim();\nconst code = String(body.code || '').trim();\nif (!email || !code) {\n  throw new Error('Missing email or OTP code.');\n}\nreturn [{ json: { email, role, name, code } }];"
+      },
+      "id": "normalize-otp-request",
+      "name": "Normalize OTP Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "Envision Chess Academy OTP Login Code",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#24172d;padding:24px;max-width:640px;margin:0 auto;background:#fff9e8;border:1px solid #f0ca61;border-radius:18px;\">\n  <div style=\"background:linear-gradient(135deg,#2f0a3b,#5a1372);padding:20px 24px;border-radius:14px;color:white;\">\n    <div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fde75a;font-weight:700;\">Envision Chess Academy</div>\n    <h2 style=\"margin:8px 0 0;font-size:28px;line-height:1.1;\">Your OTP Login Code</h2>\n  </div>\n  <p style=\"margin:24px 0 8px;\">Hello {{$json.name}},</p>\n  <p style=\"margin:0 0 18px;\">Use the code below to log in to the feedback portal as <strong>{{$json.role}}</strong>.</p>\n  <div style=\"margin:22px 0;padding:18px;border-radius:16px;background:#ffffff;border:2px dashed #76309a;text-align:center;\">\n    <div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#5a1372;font-weight:700;\">One-Time Password</div>\n    <div style=\"font-size:36px;font-weight:800;letter-spacing:8px;color:#2f0a3b;margin-top:8px;\">{{$json.code}}</div>\n  </div>\n  <p style=\"margin:0 0 12px;\">This code will expire shortly. If you did not request this, you can ignore this email.</p>\n  <p style=\"margin:18px 0 0;color:#706178;font-size:13px;\">Envision Chess Academy Feedback Portal</p>\n</div>",
+        "options": {}
+      },
+      "id": "send-otp-email",
+      "name": "Send OTP Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -20,
+        0
+      ],
+      "webhookId": "send-otp-email"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, data: { sent: true, email: $json.email } } }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "otp-send-response",
+      "name": "OTP Send Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "OTP Send Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize OTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize OTP Request": {
+      "main": [
+        [
+          {
+            "node": "Send OTP Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send OTP Email": {
+      "main": [
+        [
+          {
+            "node": "OTP Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

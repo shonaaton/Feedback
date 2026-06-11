@@ -7,7 +7,6 @@
     email: '',
     month: '',
     sessionToken: '',
-    demo: false,
     currentTask: null,
     currentView: 'coach',
     cache: { coach: null, mentor: null, approved: null }
@@ -101,7 +100,7 @@
 
   async function loadMonths() {
     try {
-      const data = state.demo ? { months: demoData.months, defaultMonth: 'May 2026' } : await apiGet('available_months', {});
+      const data = await apiGet('available_months', {});
       const months = data.months && data.months.length ? data.months : ['May 2026'];
       fillMonthSelect($('month-select'), months, data.defaultMonth || months[months.length - 1]);
       fillMonthSelect($('workspace-month'), months, data.defaultMonth || months[months.length - 1]);
@@ -120,14 +119,13 @@
   }
 
   async function requestOtp() {
-    state.demo = false;
     state.role = $('login-role').value;
     state.email = $('login-email').value.trim();
     state.month = $('month-select').value;
     if (!state.email) return setBanner('Enter email first.', 'error');
     setButtonBusy($('send-otp-btn'), true, 'Sending…');
     try {
-      await apiN8nPost('eca-feedback-auth-request', { email: state.email, role: state.role });
+      await apiJson('/api/auth/request-otp', { email: state.email, role: state.role });
       $('otp-row').classList.add('show');
       $('session-pill').textContent = 'OTP sent';
       $('session-pill').className = 'status-pill warn';
@@ -144,7 +142,7 @@
     if (!code) return setBanner('Enter OTP code.', 'error');
     setButtonBusy($('verify-otp-btn'), true, 'Verifying…');
     try {
-      const data = await apiN8nPost('eca-feedback-auth-verify', { email: state.email, role: state.role, code });
+      const data = await apiJson('/api/auth/verify-otp', { email: state.email, role: state.role, code });
       state.sessionToken = data.sessionToken || data.token || '';
       if (!state.sessionToken) throw new Error('OTP verified but no sessionToken was returned by n8n. Check the auth workflow.');
       openWorkspace();
@@ -157,24 +155,11 @@
     }
   }
 
-  function startDemo() {
-    state.demo = true;
-    state.role = $('login-role').value;
-    state.email = state.role === 'mentor' ? 'contact@envisionchessacademy.com' : 'sayantanchandra12@gmail.com';
-    state.month = 'May 2026';
-    state.sessionToken = 'demo-session';
-    $('login-email').value = state.email;
-    loadMonths();
-    openWorkspace();
-    reloadCurrentView();
-    setBanner('Demo mode opened. No live data is changed.', 'success');
-  }
-
   function openWorkspace() {
     $('login-card').classList.add('hidden');
     $('workspace').classList.remove('hidden');
     $('profile-email').textContent = state.email;
-    $('profile-role').textContent = state.demo ? `${capitalize(state.role)} · Demo` : capitalize(state.role);
+    $('profile-role').textContent = capitalize(state.role);
     $('avatar').textContent = (state.email || 'E').slice(0, 1).toUpperCase();
     $('session-pill').textContent = 'Signed in';
     $('session-pill').className = 'status-pill good';
@@ -189,7 +174,7 @@
   }
 
   function resetPortal() {
-    state.role = 'coach'; state.email = ''; state.month = ''; state.sessionToken = ''; state.demo = false; state.currentTask = null;
+    state.role = 'coach'; state.email = ''; state.month = ''; state.sessionToken = ''; state.currentTask = null;
     state.cache = { coach: null, mentor: null, approved: null };
     $('login-role').value = 'coach'; $('login-email').value = ''; $('otp-code').value = ''; $('otp-row').classList.remove('show');
     $('login-card').classList.remove('hidden'); $('workspace').classList.add('hidden'); closeDrawer();
@@ -202,7 +187,7 @@
   }
 
   async function reloadCurrentView() {
-    if (!state.email && !state.demo) return;
+    if (!state.email) return;
     if (state.currentView === 'coach') return loadCoachDashboard();
     if (state.currentView === 'mentor') return loadMentorDashboard();
     if (state.currentView === 'approved') return loadApprovedDashboard();
@@ -221,7 +206,7 @@
   async function loadCoachDashboard() {
     setButtonBusy($('load-coach-btn'), true, 'Loading…');
     try {
-      const data = state.demo ? demoData.coach : await apiGet('coach_dashboard', sessionParams({ email: state.email, month: state.month }));
+      const data = await apiGet('coach_dashboard', sessionParams({ email: state.email, month: state.month }));
       state.cache.coach = data;
       state.month = data.month || state.month;
       syncMonthControls();
@@ -237,10 +222,10 @@
   }
 
   async function loadMentorDashboard() {
-    if (state.role !== 'mentor' && !state.demo) return;
+    if (state.role !== 'mentor') return;
     setButtonBusy($('load-mentor-btn'), true, 'Loading…');
     try {
-      const data = state.demo ? demoData.mentor : await apiGet('mentor_dashboard', sessionParams({ email: state.email, month: state.month }));
+      const data = await apiGet('mentor_dashboard', sessionParams({ email: state.email, month: state.month }));
       state.cache.mentor = data;
       state.month = data.month || state.month;
       syncMonthControls();
@@ -256,10 +241,10 @@
   }
 
   async function loadApprovedDashboard() {
-    if (state.role !== 'mentor' && !state.demo) return;
+    if (state.role !== 'mentor') return;
     setButtonBusy($('load-approved-btn'), true, 'Loading…');
     try {
-      const data = state.demo ? demoData.approved : await apiGet('approved_dashboard', sessionParams({ email: state.email, month: state.month }));
+      const data = await apiGet('approved_dashboard', sessionParams({ email: state.email, month: state.month }));
       state.cache.approved = data;
       renderApprovedList(data.tasks || []);
       setBanner('Approved reports loaded.', 'success');
@@ -279,7 +264,10 @@
     const needle = $('coach-search').value.trim().toLowerCase();
     const openTasks = filterTasks((data && data.tasks) || [], needle);
     const submittedTasks = filterTasks((data && data.submittedTasks) || [], needle);
+    const activeStudents = uniqueStudents([...(data && data.tasks || []), ...(data && data.submittedTasks || [])], needle);
     $('coach-list').innerHTML = [
+      sectionHeader('Active students this month', activeStudents.length, 'Quick roster check for the logged-in coach.'),
+      activeStudents.length ? studentRosterGrid(activeStudents) : emptyState('No active students found for this coach and month.'),
       sectionHeader('Open tasks', openTasks.length, 'These are the only tasks the coach still needs to complete.'),
       openTasks.length ? openTasks.map(taskCard).join('') : emptyState('No open tasks for this coach and month.'),
       sectionHeader('Already submitted', submittedTasks.length, 'Completed feedback stays visible but separate.'),
@@ -311,6 +299,41 @@
   function filterTasks(tasks, needle) {
     if (!needle) return tasks;
     return tasks.filter(t => [t.studentName, t.studentId, t.coachName, t.batchCode, t.lichessId, t.taskStatus, t.mentorStatus, t.month].join(' ').toLowerCase().includes(needle));
+  }
+
+  function uniqueStudents(tasks, needle) {
+    const map = new Map();
+    tasks.forEach((task) => {
+      const key = String(task.studentId || task.studentName || task.taskId || '').trim();
+      if (!key) return;
+      if (!map.has(key)) {
+        map.set(key, {
+          studentId: task.studentId || '',
+          studentName: task.studentName || 'Unnamed Student',
+          batchCode: task.batchCode || '-',
+          lichessId: task.lichessId || '',
+          coachName: task.coachName || ''
+        });
+      }
+    });
+    const students = Array.from(map.values());
+    if (!needle) return students;
+    return students.filter((student) => [student.studentName, student.studentId, student.batchCode, student.lichessId, student.coachName].join(' ').toLowerCase().includes(needle));
+  }
+
+  function studentRosterGrid(students) {
+    return `<div class="roster-grid">${students.map(studentRosterCard).join('')}</div>`;
+  }
+
+  function studentRosterCard(student) {
+    return `<article class="roster-card">
+      <h3>${escapeHtml(student.studentName)}</h3>
+      <div class="task-meta">
+        <span>${escapeHtml(student.studentId || '')}</span>
+        <span>Batch ${escapeHtml(student.batchCode || '-')}</span>
+        ${student.lichessId ? `<span>${escapeHtml(student.lichessId)}</span>` : ''}
+      </div>
+    </article>`;
   }
 
   function sectionHeader(title, count, subtitle) {
@@ -350,7 +373,7 @@
 
   async function openTask(taskId) {
     try {
-      const task = state.demo ? { ...demoData.task, taskId } : await apiGet('task', sessionParams({ email: state.email, role: state.role, taskId }));
+      const task = await apiGet('task', sessionParams({ email: state.email, role: state.role, taskId }));
       state.currentTask = task;
       renderTask(task);
       $('task-drawer').classList.remove('hidden');
@@ -387,7 +410,7 @@
       blocks.push(`<h4>New portal records</h4>` + portalRecords.map(row => historyCard('New Feedback', row, ['month','mentorStatus','submissionStatus','studentRating','gamesPlayed','bestResult','strengths','improvementAreas','focusNextMonth','overallComment','mentorRemark','mentorNotes'])).join(''));
     }
     if (legacyRows.length) {
-      blocks.push(`<h4>Old detailed feedback records</h4>` + legacyRows.map(row => historyCard('Legacy Feedback', row, ['month','mentorStatus','studentRating','gamesPlayed','resultWdl','ratingChange','bestResult','opening','middlegame','endgame','tactics','thinkingTimeMgmt','attendance','homeworkPractice','puzzleConsistency','coachComment','coachPrivateNotes','mentorNotes'])).join(''));
+      blocks.push(`<h4>Previous feedback records</h4>` + legacyRows.map(row => historyCard('History Record', row, ['month','mentorStatus','studentRating','gamesPlayed','wins','draws','losses','resultWdl','ratingChange','bestResult','puzzleConsistency','skillLevel','classPerformance','strengths','improvementAreas','focusNextMonth','overallComment','mentorRemark','mentorNotes','coachComment','coachPrivateNotes','opening','middlegame','endgame','tactics','thinkingTimeMgmt','attendance','homeworkPractice'])).join(''));
     }
     return blocks.length ? blocks.join('') : emptyState('No old or new history found for this student.');
   }
@@ -432,7 +455,7 @@
     if (!state.currentTask) return setBanner('Open a task first.', 'error');
     setButtonBusy($('fetch-lichess-btn'), true, 'Fetching…');
     try {
-      const data = state.demo ? demoData.task.feedback : await apiN8nPost('eca-feedback-lichess', sessionParams({
+      const data = await apiJson('/api/lichess', sessionParams({
         email: state.email,
         role: state.role,
         taskId: state.currentTask.taskId,
@@ -455,7 +478,7 @@
     const button = mode === 'draft' ? $('save-draft-btn') : $('submit-feedback-btn');
     setButtonBusy(button, true, mode === 'draft' ? 'Saving…' : 'Submitting…');
     try {
-      const data = state.demo ? { task: { ...state.currentTask, taskStatus: mode === 'draft' ? 'Draft' : 'Submitted', mentorStatus: 'Pending', feedback: payload.feedback } } : await apiPost('submit_feedback', { payload: JSON.stringify(payload) });
+      const data = await apiPost('submit_feedback', { payload: JSON.stringify(payload) });
       state.currentTask = data.task || state.currentTask;
       renderTask(state.currentTask);
       setBanner(mode === 'draft' ? 'Draft saved.' : 'Feedback submitted to mentor.', 'success');
@@ -474,7 +497,7 @@
     payload.mentorStatus = status;
     setButtonBusy(button, true, status === 'Approved' ? 'Approving…' : 'Returning…');
     try {
-      const data = state.demo ? { task: { ...state.currentTask, mentorStatus: status, taskStatus: status, feedback: payload.feedback } } : await apiPost('mentor_update', { payload: JSON.stringify(payload) });
+      const data = await apiPost('mentor_update', { payload: JSON.stringify(payload) });
       state.currentTask = data.task || state.currentTask;
       renderTask(state.currentTask);
       setBanner(status === 'Approved' ? 'Approved and parent delivery triggered.' : 'Returned to coach.', 'success');
@@ -505,12 +528,12 @@
   }
 
   async function runAdminAction(action) {
-    if (state.role !== 'mentor' && !state.demo) return setBanner('Only mentors/admins can run this.', 'error');
+    if (state.role !== 'mentor') return setBanner('Only mentors/admins can run this.', 'error');
     const log = $('admin-log');
     log.textContent = `Running ${action}…`;
     try {
       const payload = { email: state.email, month: state.month, sessionToken: state.sessionToken };
-      const data = state.demo ? { ok: true, message: `Demo ${action} complete.` } : await apiPost(action, payload);
+      const data = await apiPost(action, payload);
       log.textContent = JSON.stringify(data, null, 2);
       setBanner(`${labelize(action)} complete.`, 'success');
       if (['sync_legacy','launch_tasks','initialize'].includes(action)) await reloadCurrentView();
@@ -524,20 +547,15 @@
   function syncMonthControls() { if (state.month) { $('month-select').value = state.month; $('workspace-month').value = state.month; } }
 
   async function apiGet(action, params = {}) {
-    // n8n-only backend. Even reads are POSTed so the workflow receives a clean body.
-    return apiN8nPost('eca-feedback-api', { action, ...params });
+    return apiJson('/api/portal', { action, ...params });
   }
 
   async function apiPost(action, params = {}) {
-    const writeActions = ['submit_feedback', 'mentor_update'];
-    const endpoint = writeActions.includes(action) ? 'eca-feedback-write' : 'eca-feedback-api';
-    return apiN8nPost(endpoint, { action, ...params });
+    return apiJson('/api/portal', { action, ...params });
   }
 
-  async function apiN8nPost(endpoint, params = {}) {
-    const url = new URL('/api/n8n', window.location.origin);
-    url.searchParams.set('endpoint', endpoint);
-    const res = await fetch(url.toString(), {
+  async function apiJson(path, params = {}) {
+    const res = await fetch(new URL(path, window.location.origin).toString(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params || {})
@@ -547,7 +565,24 @@
 
   async function parseApiResponse(res) {
     const contentType = res.headers.get('content-type') || '';
-    const data = contentType.includes('json') ? await res.json() : { ok: false, message: await res.text() };
+    const rawText = await res.text();
+    if (!rawText.trim()) {
+      throw new Error('Backend returned an empty response. Please check the n8n webhook and Respond to Webhook node.');
+    }
+    let data;
+    if (contentType.includes('json')) {
+      try {
+        data = JSON.parse(rawText);
+      } catch (error) {
+        throw new Error(`Backend returned invalid JSON. ${rawText.slice(0, 180)}`);
+      }
+    } else {
+      try {
+        data = JSON.parse(rawText);
+      } catch (error) {
+        data = { ok: false, message: rawText };
+      }
+    }
     if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
     if (data && data.ok === false) throw new Error(data.message || 'Backend returned an error.');
     return data.data || data;

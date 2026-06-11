@@ -221,6 +221,24 @@ button { cursor: pointer; }
 }
 .task-card:hover { border-color: rgba(90,19,114,.36); box-shadow: var(--soft-shadow); }
 .task-title { margin: 0 0 6px; font-size: 1rem; color: var(--plum-900); letter-spacing: -.02em; }
+.roster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.roster-card {
+  border: 1.5px solid var(--line);
+  background: white;
+  border-radius: 18px;
+  padding: 14px 15px;
+  box-shadow: 0 6px 18px rgba(48,10,59,.05);
+}
+.roster-card h3 {
+  margin: 0 0 8px;
+  color: var(--plum-900);
+  font-size: .98rem;
+  letter-spacing: -.02em;
+}
 .task-meta { display: flex; gap: 6px; flex-wrap: wrap; color: var(--muted); font-size: .79rem; }
 .task-meta span {
   padding: 5px 8px;

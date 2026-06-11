@@ -2,10 +2,15 @@
   "name": "eca-feedback-portal-rebuilt",
   "version": "2.0.0",
   "private": true,
-  "description": "Vercel-ready Envision Chess Academy feedback portal with n8n-only Google Sheets backend.",
+  "description": "Vercel-ready Envision Chess Academy feedback portal with MongoDB live backend and n8n automations.",
   "scripts": {
     "dev": "vercel dev",
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "seed:users": "node scripts/seed-users.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "mongodb": "^6.17.0"
   },
   "engines": {
     "node": ">=18"

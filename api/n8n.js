@@ -38,6 +38,12 @@ module.exports = async function handler(req, res) {
     }
     const response = await fetch(url.toString(), init);
     const text = await response.text();
+    if (!text.trim()) {
+      return sendJson(res, response.ok ? 502 : response.status, {
+        ok: false,
+        message: `n8n returned an empty response for ${endpoint}. Check the Respond to Webhook node in that workflow.`
+      });
+    }
     res.setHeader('Content-Type', response.headers.get('content-type') || 'application/json; charset=utf-8');
     res.status(response.status).send(text);
   } catch (error) {

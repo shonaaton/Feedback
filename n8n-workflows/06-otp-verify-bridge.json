@@ -1,0 +1,128 @@
+{
+  "name": "ECA OTP Verify Bridge - MongoDB",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eca-mongo-verify-otp",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "otp-verify-webhook",
+      "name": "OTP Verify Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -520,
+        0
+      ],
+      "webhookId": "eca-mongo-verify-otp"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\nconst email = String(body.email || '').trim().toLowerCase();\nconst role = String(body.role || 'coach').trim().toLowerCase();\nconst code = String(body.code || '').trim();\nif (!email || !code) {\n  throw new Error('Missing email or OTP code.');\n}\nreturn [{ json: { email, role, code } }];"
+      },
+      "id": "normalize-verify-request",
+      "name": "Normalize Verify Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_VERIFY_OTP_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { email: $json.email, role: $json.role, code: $json.code } }}",
+        "options": {}
+      },
+      "id": "call-backend-verify",
+      "name": "Call Backend Verify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -10,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "otp-verify-response",
+      "name": "OTP Verify Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "OTP Verify Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Verify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Verify Request": {
+      "main": [
+        [
+          {
+            "node": "Call Backend Verify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Backend Verify": {
+      "main": [
+        [
+          {
+            "node": "OTP Verify Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
