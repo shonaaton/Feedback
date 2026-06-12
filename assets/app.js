@@ -116,13 +116,9 @@
 
   async function pingBackend() {
     try {
-      const data = await apiGet('ping', {});
-      $('connection-label').textContent = 'Backend connected';
-      $('connection-detail').textContent = data.message || 'n8n backend is live.';
-      setBanner('Backend connected. Send OTP to start.', 'success');
+      await apiGet('ping', {});
+      setBanner('Portal ready. Enter your email to continue.', 'success');
     } catch (error) {
-      $('connection-label').textContent = 'Backend not connected';
-      $('connection-detail').textContent = error.message;
       setBanner(error.message, 'error');
     }
   }
@@ -155,17 +151,19 @@
     state.month = $('month-select').value;
     if (!state.email) return setBanner('Enter email first.', 'error');
     if (state.role === 'parent') return setBanner('Parent login design is ready, but parent access is not enabled yet.', 'error');
-    setButtonBusy($('send-otp-btn'), true, 'Sending…');
+    setButtonBusy($('send-otp-btn'), true, 'Getting…');
     try {
       await apiJson('/api/auth/request-otp', { email: state.email, role: state.role });
       $('otp-row').classList.add('show');
+      $('send-otp-btn').classList.add('hidden');
+      $('verify-otp-btn').classList.remove('hidden');
       $('session-pill').textContent = 'OTP sent';
       $('session-pill').className = 'status-pill warn';
       setBanner('OTP sent. Check the email inbox linked to this role.', 'success');
     } catch (error) {
       setBanner(error.message, 'error');
     } finally {
-      setButtonBusy($('send-otp-btn'), false, 'Send OTP');
+      setButtonBusy($('send-otp-btn'), false, 'Get OTP');
     }
   }
 
@@ -214,6 +212,7 @@
     state.role = 'coach'; state.email = ''; state.name = ''; state.month = ''; state.sessionToken = ''; state.currentTask = null;
     state.cache = { coach: null, mentor: null, approved: null };
     $('login-role').value = 'coach'; $('login-email').value = ''; $('otp-code').value = ''; $('otp-row').classList.remove('show');
+    $('send-otp-btn').classList.remove('hidden'); $('verify-otp-btn').classList.add('hidden');
     $('login-shell').classList.remove('hidden'); $('login-card').classList.remove('hidden'); $('workspace').classList.add('hidden'); closeDrawer();
     $('session-pill').textContent = 'Signed out'; $('session-pill').className = 'status-pill neutral';
     loadMonths(); setBanner('Session reset.');
