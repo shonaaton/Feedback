@@ -196,9 +196,9 @@ button { cursor: pointer; }
   margin: 0;
   max-width: 11ch;
   font-family: Cinzel, Georgia, serif;
-  font-size: clamp(2.5rem, 5vw, 4.8rem);
+  font-size: clamp(2.2rem, 4.2vw, 4rem);
   letter-spacing: -.045em;
-  line-height: .98;
+  line-height: 1.02;
 }
 .hero-copy {
   margin: 0;
@@ -240,7 +240,7 @@ button { cursor: pointer; }
   gap: 12px;
   margin-top: 2px;
 }
-.premium-login {
+.login-card.premium-login {
   display: grid;
   align-content: start;
   min-height: 680px;
@@ -252,6 +252,9 @@ button { cursor: pointer; }
   border: 1px solid rgba(240, 202, 97, .22);
   box-shadow: 0 28px 60px rgba(6, 3, 14, .26);
   color: white;
+}
+.login-card.premium-login * {
+  color: inherit;
 }
 .login-card-top {
   display: flex;
@@ -266,24 +269,33 @@ button { cursor: pointer; }
   filter: drop-shadow(0 8px 18px rgba(0,0,0,.25));
 }
 .landing-heading { margin-bottom: 14px; }
-.premium-login .section-heading h2 {
+.login-card.premium-login .section-heading h2 {
   color: #fff;
   font-size: clamp(1.9rem, 3vw, 3rem);
 }
-.premium-login .section-heading p { color: rgba(255,255,255,.7); }
-.premium-login .field span { color: #f4db7a; }
-.premium-login .field input,
-.premium-login .field select,
-.premium-login .search {
+.login-card.premium-login .section-heading p { color: rgba(255,255,255,.74); }
+.login-card.premium-login .field span { color: #f4db7a; }
+.login-card.premium-login .field input,
+.login-card.premium-login .field select,
+.login-card.premium-login .search {
   color: #fff;
   background: rgba(255,255,255,.06);
   border-color: rgba(232, 213, 255, .16);
 }
-.premium-login .field input::placeholder { color: rgba(255,255,255,.46); }
-.premium-login .field input:focus,
-.premium-login .field select:focus {
+.login-card.premium-login .field input::placeholder { color: rgba(255,255,255,.46); }
+.login-card.premium-login .field input:focus,
+.login-card.premium-login .field select:focus {
   border-color: rgba(240, 202, 97, .72);
   box-shadow: 0 0 0 4px rgba(240, 202, 97, .08);
+}
+.login-card.premium-login .status-pill.neutral {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.1);
+}
+.login-card.premium-login .btn.ghost {
+  background: rgba(255,255,255,.12);
+  color: #f6e9ff;
 }
 .landing-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field-wide { grid-column: span 2; }
@@ -547,7 +559,7 @@ button { cursor: pointer; }
 }
 @media (max-width: 980px) {
   .hero,
-  .premium-login {
+  .login-card.premium-login {
     min-height: auto;
   }
   .landing-form-grid,
@@ -585,7 +597,7 @@ button { cursor: pointer; }
   .hero-logo,
   .login-logo { width: min(250px, 82%); }
   .hero-copy { font-size: .92rem; }
-  .premium-login { padding: 20px 16px; }
+  .login-card.premium-login { padding: 20px 16px; }
   .task-card { padding: 12px; }
   .task-meta span, .badge, .status-pill { font-size: .7rem; }
   .panel-block { padding: 14px; }
