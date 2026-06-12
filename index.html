@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ECA Feedback Portal 2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/styles.css" />
 </head>
 <body>
@@ -20,74 +23,111 @@
         <div class="activity-spinner"></div>
         <div>
           <strong id="activity-title">Working</strong>
-          <small id="activity-detail">Please wait a moment…</small>
+          <small id="activity-detail">Please wait a moment...</small>
         </div>
       </div>
     </div>
   </div>
+
   <main class="app-shell">
-    <header class="hero">
-      <div class="hero-brand">
-        <img class="hero-logo" src="https://res.cloudinary.com/dlafr6yu3/image/upload/v1781225175/text_logo_yellow_2_jkykvz.png" alt="Envision Chess Academy" />
-        <p class="eyebrow">Monthly Feedback System</p>
-        <h1>Coach feedback, mentor review, parent delivery.</h1>
-        <p class="hero-copy">A calmer way to collect chess feedback, review it, and send polished parent-ready reports from one place.</p>
-      </div>
-      <div class="hero-card">
-        <div class="mini-board" aria-hidden="true">
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
-          <span></span><span></span><span></span><span></span>
+    <section class="landing-shell">
+      <div class="landing-stage">
+        <div class="landing-grid">
+          <section class="hero premium-hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-brand">
+              <img class="hero-logo" src="https://res.cloudinary.com/dlafr6yu3/image/upload/v1781225175/text_logo_yellow_2_jkykvz.png" alt="Envision Chess Academy" />
+              <p class="eyebrow">Monthly Feedback Portal</p>
+              <div class="hero-badge">Every move. A better future.</div>
+              <h1>Monthly reports with the calm, polish, and control your academy needs.</h1>
+              <p class="hero-copy">Coaches submit in one place, mentors review with context, and parents receive refined feedback without anyone jumping across multiple tools.</p>
+              <div class="hero-points">
+                <article>
+                  <strong>Coach-ready workflow</strong>
+                  <span>Open tasks, fetch Lichess data, and submit reports from one streamlined workspace.</span>
+                </article>
+                <article>
+                  <strong>Mentor control</strong>
+                  <span>Review, edit, approve, save for later, and send final reports with clean oversight.</span>
+                </article>
+                <article>
+                  <strong>Parent delivery</strong>
+                  <span>Approved feedback becomes polished parent-facing mail, without private internal remarks.</span>
+                </article>
+              </div>
+              <div class="hero-bottom-points">
+                <div><strong>Secure OTP Access</strong><span>Role-based login for coach, mentor, and admin users.</span></div>
+                <div><strong>Live Progress</strong><span>Track open, submitted, pending, approved, and returned items clearly.</span></div>
+                <div><strong>One Premium Portal</strong><span>No forms, no sheet hopping, no scattered monthly process.</span></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="login-card premium-login" id="login-card">
+            <div class="login-card-top">
+              <img class="login-logo" src="https://res.cloudinary.com/dlafr6yu3/image/upload/v1781225175/text_logo_yellow_2_jkykvz.png" alt="Envision Chess Academy" />
+              <span class="status-pill neutral" id="session-pill">Signed out</span>
+            </div>
+
+            <div class="section-heading landing-heading">
+              <div>
+                <p class="eyebrow">Secure Access</p>
+                <h2>Feedback Portal Login</h2>
+                <p>Sign in to access student feedback reports and monthly approval workflows.</p>
+              </div>
+            </div>
+
+            <div class="form-grid three landing-form-grid">
+              <label class="field">
+                <span>Role</span>
+                <select id="login-role">
+                  <option value="coach">Coach</option>
+                  <option value="mentor">Mentor / Admin</option>
+                </select>
+              </label>
+              <label class="field field-wide">
+                <span>Email</span>
+                <input id="login-email" type="email" placeholder="Enter your registered email" autocomplete="email" />
+              </label>
+              <label class="field">
+                <span>Month</span>
+                <select id="month-select"></select>
+              </label>
+            </div>
+
+            <div class="action-row landing-actions">
+              <button class="btn gold" id="send-otp-btn">Send OTP</button>
+              <button class="btn ghost" id="reset-btn">Reset</button>
+            </div>
+
+            <div class="otp-row" id="otp-row">
+              <label class="field">
+                <span>OTP Code</span>
+                <input id="otp-code" inputmode="numeric" placeholder="Enter 6-digit OTP" />
+              </label>
+              <button class="btn primary" id="verify-otp-btn">Verify & Open Workspace</button>
+            </div>
+
+            <div class="login-support-row">
+              <p class="login-note">Use your registered email to receive a one-time password and securely access the portal.</p>
+              <div class="connection-card">
+                <div class="mini-board" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                  <span></span><span></span><span></span><span></span>
+                </div>
+                <div>
+                  <strong id="connection-label">Checking backend...</strong>
+                  <small id="connection-detail">Checking live portal services, tasks, and automation links.</small>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
-        <div>
-          <strong id="connection-label">Checking backend…</strong>
-          <small id="connection-detail">Checking live portal services, tasks, and automation links.</small>
-        </div>
-      </div>
-    </header>
-
-    <section class="notice" id="banner" role="status">Loading portal…</section>
-
-    <section class="login-card" id="login-card">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow dark">Secure access</p>
-          <h2>Email OTP login</h2>
-        </div>
-        <span class="status-pill neutral" id="session-pill">Signed out</span>
       </div>
 
-      <div class="form-grid three">
-        <label class="field">
-          <span>Role</span>
-          <select id="login-role">
-            <option value="coach">Coach</option>
-            <option value="mentor">Mentor / Admin</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Email</span>
-          <input id="login-email" type="email" placeholder="name@example.com" autocomplete="email" />
-        </label>
-        <label class="field">
-          <span>Month</span>
-          <select id="month-select"></select>
-        </label>
-      </div>
-
-      <div class="action-row">
-        <button class="btn gold" id="send-otp-btn">Send OTP</button>
-        <button class="btn ghost" id="reset-btn">Reset</button>
-      </div>
-
-      <div class="otp-row" id="otp-row">
-        <label class="field">
-          <span>OTP Code</span>
-          <input id="otp-code" inputmode="numeric" placeholder="6-digit code" />
-        </label>
-        <button class="btn primary" id="verify-otp-btn">Verify & Open Workspace</button>
-      </div>
+      <section class="notice" id="banner" role="status">Loading portal...</section>
     </section>
 
     <section class="workspace hidden" id="workspace">
@@ -95,8 +135,8 @@
         <div class="profile-card">
           <span class="avatar" id="avatar">E</span>
           <div>
-            <strong id="profile-email">—</strong>
-            <small id="profile-role">—</small>
+            <strong id="profile-email">-</strong>
+            <small id="profile-role">-</small>
           </div>
         </div>
         <nav class="nav">
@@ -126,7 +166,7 @@
           </div>
           <div class="stats-grid" id="coach-stats"></div>
           <div class="toolbar">
-            <input class="search" id="coach-search" placeholder="Search student, batch, status…" />
+            <input class="search" id="coach-search" placeholder="Search student, batch, status..." />
           </div>
           <div class="list" id="coach-list"></div>
         </section>
@@ -141,7 +181,7 @@
           </div>
           <div class="stats-grid" id="mentor-stats"></div>
           <div class="toolbar">
-            <input class="search" id="mentor-search" placeholder="Search student, coach, status…" />
+            <input class="search" id="mentor-search" placeholder="Search student, coach, status..." />
           </div>
           <div class="list" id="mentor-list"></div>
         </section>
@@ -155,7 +195,7 @@
             <button class="btn primary" id="load-approved-btn">Load Approved</button>
           </div>
           <div class="toolbar">
-            <input class="search" id="approved-search" placeholder="Search approved reports…" />
+            <input class="search" id="approved-search" placeholder="Search approved reports..." />
           </div>
           <div class="list" id="approved-list"></div>
         </section>
@@ -222,7 +262,7 @@
             <h2 id="drawer-title">No student selected</h2>
             <p class="muted" id="drawer-subtitle"></p>
           </div>
-          <button class="icon-btn" id="drawer-close" aria-label="Close">×</button>
+          <button class="icon-btn" id="drawer-close" aria-label="Close">x</button>
         </div>
 
         <div class="summary-strip" id="task-summary-strip"></div>
@@ -263,7 +303,7 @@
           <section class="panel-block">
             <h3>Coach evaluation</h3>
             <div class="form-grid three">
-              <label class="field"><span>Puzzle Consistency</span><select id="puzzle-consistency"><option value="">Select</option><option>Excellent — Daily practice</option><option>Good — 3-4 times/week</option><option>Average — Sometimes practices</option><option>Poor — Rarely practices</option></select></label>
+              <label class="field"><span>Puzzle Consistency</span><select id="puzzle-consistency"><option value="">Select</option><option>Excellent - Daily practice</option><option>Good - 3-4 times/week</option><option>Average - Sometimes practices</option><option>Poor - Rarely practices</option></select></label>
               <label class="field"><span>Skill Level</span><select id="skill-level"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Needs Support</option></select></label>
               <label class="field"><span>Class Performance</span><select id="class-performance"><option value="">Select</option><option>Excellent</option><option>Good</option><option>Average</option><option>Poor</option></select></label>
             </div>
@@ -298,6 +338,7 @@
       </article>
     </section>
   </main>
+
   <script src="/assets/app.js"></script>
 </body>
 </html>
