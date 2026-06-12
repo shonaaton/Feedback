@@ -42,8 +42,57 @@ button { cursor: pointer; }
   pointer-events: none;
 }
 .app-shell { width: min(1440px, calc(100% - 28px)); margin: 0 auto; padding: 24px 0 64px; }
+.activity-indicator {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(36, 5, 47, .38);
+  backdrop-filter: blur(8px);
+}
+.activity-panel {
+  width: min(420px, calc(100vw - 32px));
+  padding: 24px 22px;
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(36, 5, 47, .98), rgba(90, 19, 114, .94)),
+    repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 10px, transparent 10px 22px);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 18px 48px rgba(36, 5, 47, .3);
+}
+.activity-copy {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.activity-indicator small { display: block; color: rgba(255,255,255,.72); margin-top: 3px; }
+.activity-board {
+  width: 74px;
+  height: 74px;
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(0,0,0,.22);
+}
+.activity-board span:nth-child(odd) { background: rgba(253, 231, 90, .94); }
+.activity-board span:nth-child(even) { background: rgba(255,255,255,.16); }
+.activity-spinner {
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.25);
+  border-top-color: var(--gold-400);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .hero {
-  min-height: 260px;
+  min-height: 220px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 24px;
@@ -57,6 +106,20 @@ button { cursor: pointer; }
     repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 10px, transparent 10px 22px);
   overflow: hidden;
   position: relative;
+}
+.hero-brand {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  max-width: 760px;
+  position: relative;
+  z-index: 1;
+}
+.hero-logo {
+  width: min(320px, 72%);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 22px rgba(0,0,0,.22));
 }
 .hero::after {
   content: "";
@@ -77,8 +140,8 @@ button { cursor: pointer; }
   text-transform: uppercase;
 }
 .eyebrow.dark { color: var(--plum-700); }
-.hero h1 { margin: 0; font-size: clamp(2.6rem, 7vw, 5.6rem); letter-spacing: -0.07em; line-height: .88; max-width: 8ch; }
-.hero-copy { margin: 18px 0 0; max-width: 60ch; color: rgba(255,255,255,.78); line-height: 1.7; }
+.hero h1 { margin: 0; font-size: clamp(1.9rem, 4.8vw, 3.6rem); letter-spacing: -0.05em; line-height: 1.02; max-width: 12ch; }
+.hero-copy { margin: 2px 0 0; max-width: 56ch; color: rgba(255,255,255,.82); line-height: 1.65; font-size: .98rem; }
 .hero-card {
   align-self: stretch;
   position: relative;
@@ -159,6 +222,20 @@ button { cursor: pointer; }
 }
 .btn:hover { transform: translateY(-1px); box-shadow: 0 16px 28px rgba(48,10,59,.12); }
 .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+.btn.is-busy { position: relative; padding-left: 42px; }
+.btn.is-busy::before {
+  content: "";
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.32);
+  border-top-color: currentColor;
+  animation: spin .8s linear infinite;
+}
 .btn.primary { color: white; background: linear-gradient(135deg, var(--plum-700), var(--plum-600)); }
 .btn.gold { background: linear-gradient(135deg, var(--gold-500), var(--gold-400)); }
 .btn.ghost { background: rgba(90,19,114,.08); color: var(--plum-700); }
@@ -185,6 +262,15 @@ button { cursor: pointer; }
 .sidebar-footer { margin-top: auto; display: grid; gap: 10px; }
 .sidebar .field span { color: rgba(253,231,90,.92); }
 .content-area { min-width: 0; padding: 22px; overflow: auto; }
+.content-area::-webkit-scrollbar,
+.drawer-panel::-webkit-scrollbar {
+  width: 10px;
+}
+.content-area::-webkit-scrollbar-thumb,
+.drawer-panel::-webkit-scrollbar-thumb {
+  background: rgba(90, 19, 114, .18);
+  border-radius: 999px;
+}
 .view { animation: fadeIn .18s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .sticky-heading { position: sticky; top: -22px; z-index: 3; padding: 16px 0; background: linear-gradient(180deg, rgba(255,250,238,.96), rgba(255,250,238,.72)); backdrop-filter: blur(14px); }
@@ -295,7 +381,7 @@ button { cursor: pointer; }
 @media (max-width: 980px) {
   .hero { grid-template-columns: 1fr; }
   .workspace { grid-template-columns: 1fr; }
-  .sidebar { position: static; }
+  .sidebar { position: static; padding: 16px; }
   .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid.three, .form-grid.four, .stats-grid, .admin-grid { grid-template-columns: 1fr; }
   .task-card { grid-template-columns: 1fr; }
@@ -304,11 +390,17 @@ button { cursor: pointer; }
   .toolbar .search { max-width: 100%; }
   .action-row .btn, .drawer-actions .btn { width: 100%; }
   .summary-strip { gap: 6px; }
+  .hero-card { grid-template-columns: 1fr; }
+  .mini-board { width: 120px; height: 120px; }
+  .profile-card { padding: 12px; }
+  .content-area { padding: 16px; }
 }
 @media (max-width: 560px) {
   .app-shell { width: min(100% - 16px, 1440px); padding-top: 16px; }
   .hero, .login-card, .workspace, .drawer-panel { border-radius: 22px; }
   .hero h1 { font-size: clamp(2.2rem, 15vw, 3.4rem); }
+  .hero-logo { width: min(250px, 82%); }
+  .hero-copy { font-size: .92rem; }
   .hero-card { padding: 16px; }
   .task-card { padding: 12px; }
   .task-meta span, .badge, .status-pill { font-size: .7rem; }
@@ -316,4 +408,14 @@ button { cursor: pointer; }
   .drawer-panel { padding: 16px; }
   .drawer-tabs { flex-wrap: wrap; }
   .nav { grid-template-columns: 1fr; }
+  .login-card { padding: 18px 16px; }
+  .field input, .field select, .field textarea, .search { padding: 12px; border-radius: 14px; }
+  .btn { min-height: 48px; }
+  .stats-grid { gap: 10px; }
+  .stat-card strong { font-size: 1.6rem; }
+  .task-title { font-size: .94rem; }
+  .roster-grid { grid-template-columns: 1fr; }
+  .activity-panel { width: min(100vw - 20px, 360px); padding: 20px 18px; border-radius: 22px; }
+  .activity-board { width: 64px; height: 64px; margin-bottom: 14px; }
+  .activity-copy { align-items: flex-start; }
 }

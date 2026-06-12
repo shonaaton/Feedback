@@ -15,6 +15,17 @@ async function fetchText(url) {
   return response.text();
 }
 
+async function safeFetchGames(lichessId, since) {
+  try {
+    const gamesText = await fetchText(
+      `https://lichess.org/api/games/user/${encodeURIComponent(lichessId)}?since=${since}&max=300&perfType=rapid,blitz,classical,bullet&finished=true&rated=true`
+    );
+    return parseNdjson(gamesText);
+  } catch (error) {
+    return [];
+  }
+}
+
 function parseNdjson(text) {
   return String(text || '')
     .split(/\r?\n/)
@@ -92,12 +103,12 @@ module.exports = async function handler(req, res) {
 
     const user = await fetchJson(`https://lichess.org/api/user/${encodeURIComponent(lichessId)}`);
     const since = Date.now() - (30 * 24 * 60 * 60 * 1000);
-    const gamesText = await fetchText(
-      `https://lichess.org/api/games/user/${encodeURIComponent(lichessId)}?since=${since}&max=300&perfType=rapid,blitz,classical&finished=true&rated=true`
-    );
-    const games = parseNdjson(gamesText);
+    const games = await safeFetchGames(lichessId, since);
     const currentRating = user?.perfs?.rapid?.rating || user?.perfs?.blitz?.rating || user?.perfs?.classical?.rating || '';
     const data = buildMonthlySnapshot(games, lichessId, currentRating, user?.perfs?.puzzle?.games || '');
+    if (!games.length) {
+      data.message = 'Lichess snapshot fetched. Monthly game detail was limited, so available profile stats were used where needed.';
+    }
 
     await db.collection('lichessSnapshots').updateOne(
       { studentId: task.studentId, monthKey: task.monthKey },

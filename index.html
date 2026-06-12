@@ -8,11 +8,30 @@
 </head>
 <body>
   <div class="background-glow"></div>
+  <div class="activity-indicator hidden" id="activity-indicator" aria-live="polite">
+    <div class="activity-panel">
+      <div class="activity-board" aria-hidden="true">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="activity-copy">
+        <div class="activity-spinner"></div>
+        <div>
+          <strong id="activity-title">Working</strong>
+          <small id="activity-detail">Please wait a moment…</small>
+        </div>
+      </div>
+    </div>
+  </div>
   <main class="app-shell">
     <header class="hero">
-      <div>
-        <p class="eyebrow">Envision Chess Academy</p>
-        <h1>Feedback Portal 2.0</h1>
+      <div class="hero-brand">
+        <img class="hero-logo" src="https://res.cloudinary.com/dlafr6yu3/image/upload/v1781225175/text_logo_yellow_2_jkykvz.png" alt="Envision Chess Academy" />
+        <p class="eyebrow">Monthly Feedback System</p>
+        <h1>Coach feedback, mentor review, parent delivery.</h1>
+        <p class="hero-copy">A calmer way to collect chess feedback, review it, and send polished parent-ready reports from one place.</p>
       </div>
       <div class="hero-card">
         <div class="mini-board" aria-hidden="true">
@@ -23,7 +42,7 @@
         </div>
         <div>
           <strong id="connection-label">Checking backend…</strong>
-          <small id="connection-detail">Vercel API proxy keeps frontend clean and avoids browser CORS issues.</small>
+          <small id="connection-detail">Checking live portal services, tasks, and automation links.</small>
         </div>
       </div>
     </header>

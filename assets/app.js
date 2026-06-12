@@ -10,7 +10,8 @@
     sessionToken: '',
     currentTask: null,
     currentView: 'coach',
-    cache: { coach: null, mentor: null, approved: null }
+    cache: { coach: null, mentor: null, approved: null },
+    pendingRequests: 0
   };
 
   function isMentorLane(role = state.role) {
@@ -486,6 +487,7 @@
       }));
       ['studentRating','gamesPlayed','wins','draws','losses','ratingChange','puzzleActivity','bestResult'].forEach(k => setValue(fields[k], data[k]));
       state.currentTask.feedback = { ...(state.currentTask.feedback || {}), ...data };
+      Object.assign(state.currentTask, data);
       setBanner(data.message || 'Lichess snapshot fetched and added to this feedback form.', 'success');
     } catch (error) {
       setBanner(error.message, 'error');
@@ -642,12 +644,17 @@
   }
 
   async function apiJson(path, params = {}) {
-    const res = await fetch(new URL(path, window.location.origin).toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params || {})
-    });
-    return parseApiResponse(res);
+    beginActivity(path.includes('lichess') ? 'Fetching Lichess' : 'Updating portal');
+    try {
+      const res = await fetch(new URL(path, window.location.origin).toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(params || {})
+      });
+      return parseApiResponse(res);
+    } finally {
+      endActivity();
+    }
   }
 
   async function parseApiResponse(res) {
@@ -675,7 +682,26 @@
     return data.data || data;
   }
 
-  function setButtonBusy(button, busy, text) { if (!button) return; button.disabled = !!busy; if (text) button.textContent = text; }
+  function setButtonBusy(button, busy, text) {
+    if (!button) return;
+    button.disabled = !!busy;
+    button.classList.toggle('is-busy', !!busy);
+    if (text) button.textContent = text;
+  }
+  function beginActivity(title, detail) {
+    state.pendingRequests += 1;
+    $('activity-title').textContent = title || 'Working';
+    $('activity-detail').textContent = detail || 'Please wait a moment…';
+    $('activity-indicator').classList.remove('hidden');
+    document.body.classList.add('is-busy');
+  }
+  function endActivity() {
+    state.pendingRequests = Math.max(0, state.pendingRequests - 1);
+    if (!state.pendingRequests) {
+      $('activity-indicator').classList.add('hidden');
+      document.body.classList.remove('is-busy');
+    }
+  }
   function setBanner(message, type) { const el = $('banner'); el.textContent = message; el.className = `notice ${type || ''}`.trim(); }
   function emptyState(message) { return `<div class="empty-state">${escapeHtml(message)}</div>`; }
   function value(el) { return el ? String(el.value || '').trim() : ''; }
