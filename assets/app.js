@@ -525,7 +525,20 @@
     $('drawer-history').classList.toggle('hidden', tab !== 'history');
   }
 
-  function closeDrawer() { $('task-drawer').classList.add('hidden'); }
+  function closeDrawer() {
+    $('task-drawer').classList.add('hidden');
+    state.currentTask = null;
+  }
+
+  function nextPendingReviewTaskId(currentTaskId) {
+    const tasks = (state.cache.mentor && state.cache.mentor.tasks) || [];
+    const pending = tasks.filter((task) => String(task.mentorStatus || 'Pending').toLowerCase() === 'pending');
+    if (!pending.length) return '';
+    const currentIndex = pending.findIndex((task) => String(task.taskId || '') === String(currentTaskId || ''));
+    if (currentIndex >= 0 && pending[currentIndex + 1]) return pending[currentIndex + 1].taskId;
+    const fallback = pending.find((task) => String(task.taskId || '') !== String(currentTaskId || ''));
+    return fallback ? fallback.taskId : '';
+  }
 
   async function fetchLichess() {
     if (!state.currentTask) return setBanner('Open a task first.', 'error');
@@ -570,15 +583,20 @@
   async function mentorUpdate(status) {
     if (!state.currentTask) return setBanner('Open a task first.', 'error');
     const button = status === 'Approved' ? $('approve-btn') : $('return-btn');
+    const currentTaskId = state.currentTask.taskId;
     const payload = collectPayload('mentor');
     payload.mentorStatus = status;
     setButtonBusy(button, true, status === 'Approved' ? 'Approving…' : 'Returning…');
     try {
-      const data = await apiPost('mentor_update', { payload: JSON.stringify(payload) });
-      state.currentTask = data.task || state.currentTask;
-      renderTask(state.currentTask);
+      await apiPost('mentor_update', { payload: JSON.stringify(payload) });
       setBanner(status === 'Approved' ? 'Approved and parent delivery triggered.' : 'Returned to coach.', 'success');
-      loadMentorDashboard();
+      closeDrawer();
+      await loadMentorDashboard();
+      await loadApprovedDashboard();
+      const nextTaskId = nextPendingReviewTaskId(currentTaskId);
+      if (nextTaskId) {
+        await openTask(nextTaskId);
+      }
     } catch (error) {
       setBanner(error.message, 'error');
     } finally {
@@ -594,9 +612,10 @@
     try {
       const data = await apiPost('save_review', { payload: JSON.stringify(payload) });
       state.currentTask = data.task || state.currentTask;
-      renderTask(state.currentTask);
       setBanner('Review saved.', 'success');
-      loadMentorDashboard();
+      closeDrawer();
+      await loadMentorDashboard();
+      await loadApprovedDashboard();
     } catch (error) {
       setBanner(error.message, 'error');
     } finally {
