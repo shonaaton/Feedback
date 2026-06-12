@@ -15,34 +15,157 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
       "position": [
-        -520,
+        -760,
         0
       ],
       "webhookId": "eca-feedback-lichess-v2"
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst payload = {\n  taskId: String(body.taskId || '').trim(),\n  studentId: String(body.studentId || '').trim(),\n  studentName: String(body.studentName || '').trim(),\n  lichessId: String(body.lichessId || '').trim(),\n  month: String(body.month || '').trim(),\n  monthKey: String(body.monthKey || '').trim()\n};\n\nif (!payload.lichessId) {\n  throw new Error('Lichess ID is required.');\n}\n\nfunction parseMonth(inputMonth, inputMonthKey) {\n  if (inputMonthKey && /^\\d{4}-\\d{2}$/.test(inputMonthKey)) {\n    return new Date(`${inputMonthKey}-01T00:00:00.000Z`);\n  }\n  const direct = inputMonth ? new Date(inputMonth) : null;\n  if (direct && !Number.isNaN(direct.getTime())) return direct;\n  const named = inputMonth ? new Date(`1 ${inputMonth}`) : null;\n  if (named && !Number.isNaN(named.getTime())) return named;\n  return new Date();\n}\n\nconst base = parseMonth(payload.month, payload.monthKey);\nconst start = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1, 0, 0, 0, 0));\nconst end = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 1, 0, 0, 0, 0));\n\npayload.since = start.getTime();\npayload.until = end.getTime();\npayload.monthKey = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`;\npayload.monthLabel = start.toLocaleString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });\n\nreturn [{ json: payload }];"
+        "jsCode": "const raw = $input.first().json;\nconst body = raw.body || raw;\n\nconst payload = {\n  taskId: String(body.taskId || '').trim(),\n  studentId: String(body.studentId || '').trim(),\n  studentName: String(body.studentName || '').trim(),\n  lichessId: String(body.lichessId || '').trim(),\n  month: String(body.month || '').trim(),\n  monthKey: String(body.monthKey || '').trim()\n};\n\nif (!payload.lichessId) throw new Error('Lichess ID is required.');\n\nfunction parseMonth(inputMonth, inputMonthKey) {\n  if (inputMonthKey && /^\\d{4}-\\d{2}$/.test(inputMonthKey)) {\n    return new Date(`${inputMonthKey}-01T00:00:00.000Z`);\n  }\n  const direct = inputMonth ? new Date(inputMonth) : null;\n  if (direct && !Number.isNaN(direct.getTime())) return direct;\n  const named = inputMonth ? new Date(`1 ${inputMonth}`) : null;\n  if (named && !Number.isNaN(named.getTime())) return named;\n  return new Date();\n}\n\nconst base = parseMonth(payload.month, payload.monthKey);\nconst start = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), 1, 0, 0, 0, 0));\nconst end = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 1, 0, 0, 0, 0));\n\npayload.since = start.getTime();\npayload.until = end.getTime();\npayload.monthKey = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`;\npayload.monthLabel = start.toLocaleString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' });\npayload.encodedLichessId = encodeURIComponent(payload.lichessId);\n\nreturn [{ json: payload }];"
       },
       "id": "normalize-v2-request",
       "name": "Normalize V2 Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -240,
+        -500,
         0
       ]
     },
     {
       "parameters": {
-        "jsCode": "const request = $input.first().json;\nconst username = String(request.lichessId || '').trim();\nconst encoded = encodeURIComponent(username);\n\nasync function fetchText(url, headers = {}) {\n  const response = await fetch(url, { headers });\n  const text = await response.text();\n  if (!response.ok) {\n    if (response.status === 404) {\n      throw new Error(`Lichess user not found: ${username}`);\n    }\n    throw new Error(`Lichess request failed (${response.status}): ${text.slice(0, 240)}`);\n  }\n  return text;\n}\n\nasync function fetchJson(url) {\n  const text = await fetchText(url, { Accept: 'application/json' });\n  try {\n    return JSON.parse(text);\n  } catch (error) {\n    throw new Error('Lichess profile did not return valid JSON.');\n  }\n}\n\nconst profile = await fetchJson(`https://lichess.org/api/user/${encoded}`);\n\nconst gamesUrl = new URL(`https://lichess.org/api/games/user/${encoded}`);\ngamesUrl.searchParams.set('since', String(request.since));\ngamesUrl.searchParams.set('until', String(request.until));\ngamesUrl.searchParams.set('max', '300');\ngamesUrl.searchParams.set('rated', 'true');\ngamesUrl.searchParams.set('finished', 'true');\ngamesUrl.searchParams.set('sort', 'dateDesc');\ngamesUrl.searchParams.set('opening', 'false');\ngamesUrl.searchParams.set('moves', 'false');\ngamesUrl.searchParams.set('pgnInJson', 'false');\ngamesUrl.searchParams.set('tags', 'false');\ngamesUrl.searchParams.set('clocks', 'false');\ngamesUrl.searchParams.set('evals', 'false');\ngamesUrl.searchParams.set('accuracy', 'false');\n\nconst gamesText = await fetchText(gamesUrl.toString(), { Accept: 'application/x-ndjson' });\nconst games = gamesText.trim()\n  ? gamesText.trim().split(/\\n+/).map((line) => {\n      try {\n        return JSON.parse(line);\n      } catch (error) {\n        return null;\n      }\n    }).filter(Boolean)\n  : [];\n\nconst userLower = username.toLowerCase();\nlet wins = 0;\nlet draws = 0;\nlet losses = 0;\nlet ratingDiffTotal = 0;\nlet ratingDiffCount = 0;\nlet bestWin = null;\nconst perfCounts = {};\n\nfor (const game of games) {\n  const whiteName = String(game.players?.white?.user?.name || game.players?.white?.user?.id || '').toLowerCase();\n  const blackName = String(game.players?.black?.user?.name || game.players?.black?.user?.id || '').toLowerCase();\n  const color = whiteName === userLower ? 'white' : blackName === userLower ? 'black' : '';\n  if (!color) continue;\n  const opponentColor = color === 'white' ? 'black' : 'white';\n  const player = game.players?.[color] || {};\n  const opponent = game.players?.[opponentColor] || {};\n  const perf = String(game.perf || 'standard');\n  perfCounts[perf] = (perfCounts[perf] || 0) + 1;\n\n  if (typeof player.ratingDiff === 'number') {\n    ratingDiffTotal += player.ratingDiff;\n    ratingDiffCount += 1;\n  }\n\n  if (!game.winner) {\n    draws += 1;\n  } else if (game.winner === color) {\n    wins += 1;\n    const opponentRating = Number(opponent.rating || 0);\n    if (!bestWin || opponentRating > bestWin.opponentRating) {\n      bestWin = {\n        opponentName: opponent.user?.name || opponent.user?.id || 'opponent',\n        opponentRating\n      };\n    }\n  } else {\n    losses += 1;\n  }\n}\n\nconst gamesPlayed = wins + draws + losses;\nconst preferredPerf = Object.keys(perfCounts).sort((a, b) => perfCounts[b] - perfCounts[a])[0] || 'rapid';\nconst perfs = profile.perfs || {};\nconst standardPerf = perfs[preferredPerf] || perfs.rapid || perfs.blitz || perfs.classical || perfs.bullet || {};\nconst currentRating = standardPerf.rating || 'No active rating this month';\nconst puzzlePerf = perfs.puzzle || {};\nconst noActivity = gamesPlayed === 0;\n\nconst ratingChange = ratingDiffCount\n  ? (ratingDiffTotal > 0 ? `+${ratingDiffTotal}` : String(ratingDiffTotal))\n  : (noActivity ? 'No activity' : '0');\n\nconst puzzleActivity = noActivity\n  ? 'No activity received this month.'\n  : (puzzlePerf.rating\n      ? `Puzzle rating ${puzzlePerf.rating}${puzzlePerf.games ? ` · ${puzzlePerf.games} puzzles` : ''}`\n      : 'No puzzle activity recorded this month.');\n\nconst bestResult = noActivity\n  ? 'No activity received this month.'\n  : (bestWin\n      ? `Win vs ${bestWin.opponentName}${bestWin.opponentRating ? ` (${bestWin.opponentRating})` : ''}`\n      : 'No win found this month');\n\nconst message = noActivity\n  ? `No Lichess activity found for ${username} in ${request.monthLabel}.`\n  : `Lichess snapshot fetched for ${username}: ${gamesPlayed} rated games in ${request.monthLabel}.`;\n\nreturn [{ json: {\n  ok: true,\n  data: {\n    taskId: request.taskId,\n    studentId: request.studentId,\n    studentName: request.studentName,\n    lichessId: username,\n    month: request.monthLabel,\n    monthKey: request.monthKey,\n    source: 'n8n-lichess-v2',\n    noActivity,\n    studentRating: String(currentRating),\n    gamesPlayed: String(gamesPlayed),\n    wins: String(wins),\n    draws: String(draws),\n    losses: String(losses),\n    ratingChange,\n    puzzleActivity,\n    bestResult,\n    perfType: preferredPerf,\n    message\n  }\n} }];"
+        "url": "=https://lichess.org/api/user/{{$json.encodedLichessId}}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "json"
+            }
+          }
+        }
       },
-      "id": "fetch-v2-snapshot",
-      "name": "Fetch V2 Snapshot",
+      "id": "fetch-profile",
+      "name": "Fetch Lichess Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://lichess.org/api/games/user/{{$json.encodedLichessId}}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "since",
+              "value": "={{ String($json.since) }}"
+            },
+            {
+              "name": "until",
+              "value": "={{ String($json.until) }}"
+            },
+            {
+              "name": "max",
+              "value": "300"
+            },
+            {
+              "name": "rated",
+              "value": "true"
+            },
+            {
+              "name": "finished",
+              "value": "true"
+            },
+            {
+              "name": "sort",
+              "value": "dateDesc"
+            },
+            {
+              "name": "opening",
+              "value": "false"
+            },
+            {
+              "name": "moves",
+              "value": "false"
+            },
+            {
+              "name": "pgnInJson",
+              "value": "false"
+            },
+            {
+              "name": "tags",
+              "value": "false"
+            },
+            {
+              "name": "clocks",
+              "value": "false"
+            },
+            {
+              "name": "evals",
+              "value": "false"
+            },
+            {
+              "name": "accuracy",
+              "value": "false"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/x-ndjson"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false,
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "fetch-games",
+      "name": "Fetch Lichess Games",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "position",
+        "options": {}
+      },
+      "id": "merge-lichess",
+      "name": "Merge Lichess Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        20,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $items('Normalize V2 Request')[0].json;\nconst profile = $items('Fetch Lichess Profile')[0].json || {};\nconst gamesRaw = $items('Fetch Lichess Games')[0].json;\n\nconst gamesText = typeof gamesRaw === 'string'\n  ? gamesRaw\n  : (gamesRaw && typeof gamesRaw.data === 'string' ? gamesRaw.data : String(gamesRaw || ''));\n\nconst games = String(gamesText || '').trim()\n  ? String(gamesText).trim().split(/\\n+/).map((line) => {\n      try { return JSON.parse(line); } catch (error) { return null; }\n    }).filter(Boolean)\n  : [];\n\nconst username = String(request.lichessId || '').trim();\nconst userLower = username.toLowerCase();\nlet wins = 0;\nlet draws = 0;\nlet losses = 0;\nlet ratingDiffTotal = 0;\nlet ratingDiffCount = 0;\nlet bestWin = null;\nconst perfCounts = {};\n\nfor (const game of games) {\n  const whiteName = String(game.players?.white?.user?.name || game.players?.white?.user?.id || '').toLowerCase();\n  const blackName = String(game.players?.black?.user?.name || game.players?.black?.user?.id || '').toLowerCase();\n  const color = whiteName === userLower ? 'white' : (blackName === userLower ? 'black' : '');\n  if (!color) continue;\n\n  const opponentColor = color === 'white' ? 'black' : 'white';\n  const player = game.players?.[color] || {};\n  const opponent = game.players?.[opponentColor] || {};\n  const perf = String(game.perf || 'standard');\n  perfCounts[perf] = (perfCounts[perf] || 0) + 1;\n\n  if (typeof player.ratingDiff === 'number') {\n    ratingDiffTotal += player.ratingDiff;\n    ratingDiffCount += 1;\n  }\n\n  if (!game.winner) {\n    draws += 1;\n  } else if (game.winner === color) {\n    wins += 1;\n    const opponentRating = Number(opponent.rating || 0);\n    if (!bestWin || opponentRating > bestWin.opponentRating) {\n      bestWin = {\n        opponentName: opponent.user?.name || opponent.user?.id || 'opponent',\n        opponentRating\n      };\n    }\n  } else {\n    losses += 1;\n  }\n}\n\nconst gamesPlayed = wins + draws + losses;\nconst preferredPerf = Object.keys(perfCounts).sort((a, b) => perfCounts[b] - perfCounts[a])[0] || 'rapid';\nconst perfs = profile.perfs || {};\nconst standardPerf = perfs[preferredPerf] || perfs.rapid || perfs.blitz || perfs.classical || perfs.bullet || {};\nconst currentRating = standardPerf.rating || 'No active rating this month';\nconst puzzlePerf = perfs.puzzle || {};\nconst noActivity = gamesPlayed === 0;\n\nconst ratingChange = ratingDiffCount\n  ? (ratingDiffTotal > 0 ? `+${ratingDiffTotal}` : String(ratingDiffTotal))\n  : (noActivity ? 'No activity' : '0');\n\nconst puzzleActivity = noActivity\n  ? 'No activity received this month.'\n  : (puzzlePerf.rating\n      ? `Puzzle rating ${puzzlePerf.rating} · ${puzzlePerf.games || 0} puzzles`\n      : 'No puzzle activity recorded this month.');\n\nconst bestResult = noActivity\n  ? 'No activity received this month.'\n  : (bestWin\n      ? `Win vs ${bestWin.opponentName}${bestWin.opponentRating ? ` (${bestWin.opponentRating})` : ''}`\n      : 'No win found this month');\n\nconst message = noActivity\n  ? `No Lichess activity found for ${username} in ${request.monthLabel}.`\n  : `Lichess snapshot fetched for ${username}: ${gamesPlayed} rated games in ${request.monthLabel}.`;\n\nreturn [{ json: {\n  ok: true,\n  data: {\n    taskId: request.taskId,\n    studentId: request.studentId,\n    studentName: request.studentName,\n    lichessId: username,\n    month: request.monthLabel,\n    monthKey: request.monthKey,\n    source: 'n8n-lichess-v2',\n    noActivity,\n    studentRating: String(currentRating),\n    gamesPlayed: String(gamesPlayed),\n    wins: String(wins),\n    draws: String(draws),\n    losses: String(losses),\n    ratingChange,\n    puzzleActivity,\n    bestResult,\n    perfType: preferredPerf,\n    message\n  }\n} }];"
+      },
+      "id": "build-v2-snapshot",
+      "name": "Build V2 Snapshot",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        40,
+        280,
         0
       ]
     },
@@ -67,7 +190,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        320,
+        540,
         0
       ]
     }
@@ -88,14 +211,52 @@
       "main": [
         [
           {
-            "node": "Fetch V2 Snapshot",
+            "node": "Fetch Lichess Profile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Lichess Games",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Fetch V2 Snapshot": {
+    "Fetch Lichess Profile": {
+      "main": [
+        [
+          {
+            "node": "Merge Lichess Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Lichess Games": {
+      "main": [
+        [
+          {
+            "node": "Merge Lichess Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Lichess Data": {
+      "main": [
+        [
+          {
+            "node": "Build V2 Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build V2 Snapshot": {
       "main": [
         [
           {

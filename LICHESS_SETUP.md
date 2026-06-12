@@ -6,6 +6,11 @@ Import this workflow in n8n:
 n8n-workflows/13-lichess-fetch-mongodb.json
 ```
 
+Important:
+
+- This version is built for n8n setups where `fetch()` is not available inside Code nodes.
+- It uses native `HTTP Request` nodes instead.
+
 Activate it. The production webhook must be:
 
 ```text
