@@ -279,9 +279,23 @@ button { cursor: pointer; }
   background: rgba(255,255,255,.12);
   color: #f6e9ff;
 }
-.landing-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.landing-form-grid {
+  grid-template-columns: minmax(150px, 170px) minmax(0, 1fr);
+  align-items: end;
+}
 .field-wide { grid-column: span 2; }
-.landing-actions { margin-top: 4px; }
+.landing-actions {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.landing-actions .btn.gold {
+  min-width: 138px;
+}
+.landing-actions .btn.primary {
+  flex: 1 1 260px;
+}
 .input-shell {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
@@ -291,6 +305,7 @@ button { cursor: pointer; }
   border: 1.5px solid rgba(232, 213, 255, .16);
   border-radius: 16px;
   background: rgba(255,255,255,.045);
+  min-width: 0;
   transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
 }
 .input-shell:focus-within {
@@ -323,9 +338,13 @@ button { cursor: pointer; }
   background: transparent;
   box-shadow: none;
   appearance: none;
+  min-width: 0;
 }
 .login-card.premium-login .input-shell input::placeholder {
   color: rgba(255,255,255,.46);
+}
+.login-card.premium-login .input-shell select {
+  padding-right: 8px;
 }
 .login-card.premium-login .input-shell select option {
   color: #24172d;
@@ -333,15 +352,12 @@ button { cursor: pointer; }
 }
 .otp-row {
   margin-top: 10px;
-  display: flex;
+  display: none;
+  width: 100%;
 }
+.otp-row.show { display: block; }
 .otp-row .field {
-  flex: 1 1 260px;
   margin: 0;
-}
-.otp-send-inline {
-  min-width: 132px;
-  align-self: end;
 }
 .login-support-row {
   display: grid;
@@ -436,10 +452,7 @@ button { cursor: pointer; }
 .field input:focus, .field select:focus, .field textarea:focus, .search:focus { border-color: var(--plum-600); box-shadow: 0 0 0 4px rgba(90,19,114,.08); }
 .field input:disabled { color: #51465a; background: #f8f2fb; }
 .field textarea { min-height: 110px; resize: vertical; line-height: 1.6; }
-.action-row, .otp-row, .toolbar, .drawer-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.otp-row { margin-top: 14px; display: none; }
-.otp-row.show { display: flex; }
-.otp-row .field { flex: 1 1 260px; margin: 0; }
+.action-row, .toolbar, .drawer-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .btn {
   appearance: none;
   border: 0;
@@ -630,6 +643,10 @@ button { cursor: pointer; }
   .field-wide {
     grid-column: auto;
   }
+  .landing-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .workspace { grid-template-columns: 1fr; }
   .sidebar { position: static; padding: 16px; }
   .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -638,7 +655,6 @@ button { cursor: pointer; }
   .section-heading, .block-title, .list-section, .drawer-head { flex-direction: column; align-items: stretch; }
   .toolbar .search { max-width: 100%; }
   .action-row .btn, .drawer-actions .btn { width: 100%; }
-  .otp-row .btn { width: 100%; }
   .summary-strip { gap: 6px; }
   .mini-board { width: 120px; height: 120px; }
   .profile-card { padding: 12px; }
@@ -658,6 +674,9 @@ button { cursor: pointer; }
   .hero-copy { font-size: .92rem; }
   .login-card.premium-login { padding: 20px 16px; }
   .input-shell { min-height: 52px; }
+  .landing-form-grid {
+    grid-template-columns: 1fr;
+  }
   .task-card { padding: 12px; }
   .task-meta span, .badge, .status-pill { font-size: .7rem; }
   .panel-block { padding: 14px; }
