@@ -448,9 +448,13 @@
     });
 
     const isMentor = isMentorLane();
+    const isLegacy = !!task.legacy;
     $$('.mentor-tools').forEach(el => el.classList.toggle('hidden', !isMentor));
-    $('save-draft-btn').classList.toggle('hidden', isMentor);
-    $('submit-feedback-btn').classList.toggle('hidden', isMentor);
+    $('save-draft-btn').classList.toggle('hidden', isMentor || isLegacy);
+    $('submit-feedback-btn').classList.toggle('hidden', isMentor || isLegacy);
+    $('fetch-lichess-btn').classList.toggle('hidden', isLegacy);
+    $('approve-btn').classList.toggle('hidden', !isMentor || isLegacy);
+    $('return-btn').classList.toggle('hidden', !isMentor || isLegacy);
     switchDrawerTab('form');
   }
 
