@@ -41,11 +41,19 @@ module.exports = async function handler(req, res) {
     }
     if (action === 'mentor_dashboard') {
       if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
-      return ok(res, await getMentorDashboard(db, { month, mentorEmail: session.email }));
+      return ok(res, await getMentorDashboard(db, {
+        month,
+        mentorEmail: session.email,
+        isAdmin: session.role === 'admin'
+      }));
     }
     if (action === 'approved_dashboard') {
       if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
-      return ok(res, await getApprovedDashboard(db, { month, mentorEmail: session.email }));
+      return ok(res, await getApprovedDashboard(db, {
+        month,
+        mentorEmail: session.email,
+        isAdmin: session.role === 'admin'
+      }));
     }
     if (action === 'task') {
       const task = await getTaskById(db, body.taskId || payload.taskId);

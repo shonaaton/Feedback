@@ -85,9 +85,19 @@
     $('submit-feedback-btn').addEventListener('click', () => submitFeedback('submit'));
     $('approve-btn').addEventListener('click', () => mentorUpdate('Approved'));
     $('return-btn').addEventListener('click', () => mentorUpdate('Returned'));
+    document.addEventListener('click', handleGlobalClick);
     $$('.nav-btn').forEach(btn => btn.addEventListener('click', () => switchView(btn.dataset.view)));
     $$('.drawer-tab').forEach(btn => btn.addEventListener('click', () => switchDrawerTab(btn.dataset.drawerTab)));
     $$('[data-admin-action]').forEach(btn => btn.addEventListener('click', () => runAdminAction(btn.dataset.adminAction)));
+  }
+
+  function handleGlobalClick(event) {
+    const openButton = event.target.closest('[data-open-task]');
+    if (openButton) {
+      event.preventDefault();
+      const taskId = String(openButton.dataset.openTask || '').trim();
+      if (taskId) openTask(taskId);
+    }
   }
 
   async function pingBackend() {
@@ -281,7 +291,6 @@
       sectionHeader('Already submitted', submittedTasks.length, 'Completed feedback stays visible but separate.'),
       submittedTasks.length ? submittedTasks.map(taskCard).join('') : emptyState('No submitted tasks yet.')
     ].join('');
-    bindOpenButtons();
   }
 
   function renderMentorDashboard(data) {
@@ -294,14 +303,12 @@
       sectionHeader('Approved', completed.length, 'These are finished and can be checked without mixing them into the queue.'),
       completed.length ? completed.map(taskCard).join('') : emptyState('No approved records for this month.')
     ].join('');
-    bindOpenButtons();
   }
 
   function renderApprovedList(tasks) {
     const needle = $('approved-search').value.trim().toLowerCase();
     const filtered = filterTasks(tasks, needle);
     $('approved-list').innerHTML = filtered.length ? filtered.map(taskCard).join('') : emptyState('No approved records found for this month. Run legacy import if old approvals are missing.');
-    bindOpenButtons();
   }
 
   function filterTasks(tasks, needle) {
@@ -373,10 +380,6 @@
         <button class="btn ghost small" data-open-task="${escapeHtml(task.taskId)}">Open</button>
       </div>
     </article>`;
-  }
-
-  function bindOpenButtons() {
-    $$('[data-open-task]').forEach(btn => btn.addEventListener('click', () => openTask(btn.dataset.openTask)));
   }
 
   async function openTask(taskId) {
