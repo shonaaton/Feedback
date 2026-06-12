@@ -6,6 +6,7 @@ const {
   getAvailableMonths,
   getCoachDashboard,
   getMentorDashboard,
+  saveMentorReview,
   getTaskById,
   getTaskHistory,
   mentorUpdate,
@@ -32,6 +33,18 @@ module.exports = async function handler(req, res) {
 
     if (action === 'ping') return ok(res, { message: 'MongoDB backend connected.' });
     if (action === 'available_months') return ok(res, await getAvailableMonths(db));
+    if (action === 'available_coaches') {
+      const coaches = await db.collection('users').find({
+        role: 'coach',
+        status: { $ne: 'inactive' }
+      }).sort({ name: 1, email: 1 }).toArray();
+      return ok(res, {
+        coaches: coaches.map((coach) => ({
+          email: coach.email,
+          name: coach.name || coach.email
+        }))
+      });
+    }
 
     const session = await requireSession(db, body.sessionToken || payload.sessionToken);
     const month = body.month || payload.month;
@@ -84,10 +97,26 @@ module.exports = async function handler(req, res) {
       }
       return ok(res, { task: updatedTask, message: payload.mentorStatus === 'Approved' ? 'Approved and queued for parent delivery.' : 'Returned to coach.' });
     }
+    if (action === 'save_review') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const task = await getTaskById(db, payload.taskId);
+      if (!task) return fail(res, 404, 'Task not found.');
+      const updatedTask = await saveMentorReview(db, task, payload, session);
+      return ok(res, { task: updatedTask, message: 'Review saved.' });
+    }
+    if (action === 'send_all_to_parents') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const parentDelivery = await queueParentDelivery(db, month);
+      return ok(res, {
+        message: 'All approved reports have been queued for parent delivery.',
+        parentDelivery
+      });
+    }
     if (action === 'launch_tasks') {
       if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
-      const generated = await generateMonthlyTasks(db, month);
-      const coachLaunch = await queueCoachLaunchEmails(db, month);
+      const coachEmail = String(body.coachEmail || payload.coachEmail || '').trim().toLowerCase();
+      const generated = await generateMonthlyTasks(db, month, { coachEmail });
+      const coachLaunch = await queueCoachLaunchEmails(db, month, { coachEmail });
       return ok(res, {
         message: 'Monthly tasks generated and coach launch emails queued.',
         generated,

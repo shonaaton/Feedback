@@ -75,6 +75,8 @@
     $('load-approved-btn').addEventListener('click', loadApprovedDashboard);
     $('workspace-month').addEventListener('change', () => { state.month = $('workspace-month').value; $('month-select').value = state.month; reloadCurrentView(); });
     $('month-select').addEventListener('change', () => { state.month = $('month-select').value; $('workspace-month').value = state.month; });
+    $('admin-launch-scope').addEventListener('change', syncAdminLaunchScope);
+    $('admin-launch-btn').addEventListener('click', runAdminLaunch);
     $('coach-search').addEventListener('input', () => renderCoachDashboard(state.cache.coach || null));
     $('mentor-search').addEventListener('input', () => renderMentorDashboard(state.cache.mentor || null));
     $('approved-search').addEventListener('input', () => renderApprovedList((state.cache.approved && state.cache.approved.tasks) || []));
@@ -83,6 +85,7 @@
     $('fetch-lichess-btn').addEventListener('click', fetchLichess);
     $('save-draft-btn').addEventListener('click', () => submitFeedback('draft'));
     $('submit-feedback-btn').addEventListener('click', () => submitFeedback('submit'));
+    $('save-review-btn').addEventListener('click', saveReview);
     $('approve-btn').addEventListener('click', () => mentorUpdate('Approved'));
     $('return-btn').addEventListener('click', () => mentorUpdate('Returned'));
     document.addEventListener('click', handleGlobalClick);
@@ -119,11 +122,13 @@
       const months = data.months && data.months.length ? data.months : ['May 2026'];
       fillMonthSelect($('month-select'), months, data.defaultMonth || months[months.length - 1]);
       fillMonthSelect($('workspace-month'), months, data.defaultMonth || months[months.length - 1]);
+      if ($('admin-launch-month')) fillMonthSelect($('admin-launch-month'), months, data.defaultMonth || months[months.length - 1]);
       state.month = $('month-select').value;
     } catch (error) {
       const fallback = ['Mar 2026', 'Apr 2026', 'May 2026'];
       fillMonthSelect($('month-select'), fallback, fallback[fallback.length - 1]);
       fillMonthSelect($('workspace-month'), fallback, fallback[fallback.length - 1]);
+      if ($('admin-launch-month')) fillMonthSelect($('admin-launch-month'), fallback, fallback[fallback.length - 1]);
       state.month = $('month-select').value;
     }
   }
@@ -184,6 +189,7 @@
     $$('body .mentor-only').forEach(el => el.classList.toggle('hidden', !isMentorLane()));
     switchView(isMentorLane() ? 'mentor' : 'coach');
     if (isMentorLane()) {
+      loadAdminCoaches();
       loadMentorDashboard();
       loadApprovedDashboard();
     } else {
@@ -452,6 +458,7 @@
     $$('.mentor-tools').forEach(el => el.classList.toggle('hidden', !isMentor));
     $('save-draft-btn').classList.toggle('hidden', isMentor || isLegacy);
     $('submit-feedback-btn').classList.toggle('hidden', isMentor || isLegacy);
+    $('save-review-btn').classList.toggle('hidden', !isMentor || isLegacy);
     $('fetch-lichess-btn').classList.toggle('hidden', isLegacy);
     $('approve-btn').classList.toggle('hidden', !isMentor || isLegacy);
     $('return-btn').classList.toggle('hidden', !isMentor || isLegacy);
@@ -524,6 +531,24 @@
     }
   }
 
+  async function saveReview() {
+    if (!state.currentTask) return setBanner('Open a task first.', 'error');
+    const button = $('save-review-btn');
+    const payload = collectPayload('mentor');
+    setButtonBusy(button, true, 'Saving…');
+    try {
+      const data = await apiPost('save_review', { payload: JSON.stringify(payload) });
+      state.currentTask = data.task || state.currentTask;
+      renderTask(state.currentTask);
+      setBanner('Review saved.', 'success');
+      loadMentorDashboard();
+    } catch (error) {
+      setBanner(error.message, 'error');
+    } finally {
+      setButtonBusy(button, false, 'Save Review');
+    }
+  }
+
   function collectPayload(mode) {
     return {
       email: state.email,
@@ -560,6 +585,53 @@
 
   function sessionParams(params) { return { ...params, sessionToken: state.sessionToken }; }
   function syncMonthControls() { if (state.month) { $('month-select').value = state.month; $('workspace-month').value = state.month; } }
+
+  function syncAdminLaunchScope() {
+    const single = $('admin-launch-scope').value === 'single';
+    $('admin-launch-coach').disabled = !single;
+  }
+
+  async function loadAdminCoaches() {
+    if (!isMentorLane()) return;
+    try {
+      const data = await apiGet('available_coaches', sessionParams({}));
+      const select = $('admin-launch-coach');
+      if (!select) return;
+      const options = ['<option value="">Select coach</option>'].concat(
+        (data.coaches || []).map((coach) => `<option value="${escapeHtml(coach.email)}">${escapeHtml(coach.name)} (${escapeHtml(coach.email)})</option>`)
+      );
+      select.innerHTML = options.join('');
+      syncAdminLaunchScope();
+    } catch (error) {
+      setBanner(error.message, 'error');
+    }
+  }
+
+  async function runAdminLaunch() {
+    if (!isMentorLane()) return setBanner('Only mentors/admins can run this.', 'error');
+    const button = $('admin-launch-btn');
+    const scope = $('admin-launch-scope').value;
+    const coachEmail = scope === 'single' ? $('admin-launch-coach').value.trim() : '';
+    const month = $('admin-launch-month').value || state.month;
+    if (scope === 'single' && !coachEmail) return setBanner('Select a coach first.', 'error');
+    setButtonBusy(button, true, 'Creating…');
+    try {
+      const data = await apiPost('launch_tasks', {
+        email: state.email,
+        month,
+        coachEmail,
+        sessionToken: state.sessionToken
+      });
+      $('admin-log').textContent = JSON.stringify(data, null, 2);
+      setBanner(scope === 'single' ? 'Feedbacks created for selected coach.' : 'Feedbacks created for all active coaches.', 'success');
+      await reloadCurrentView();
+    } catch (error) {
+      $('admin-log').textContent = error.stack || error.message;
+      setBanner(error.message, 'error');
+    } finally {
+      setButtonBusy(button, false, 'Create Feedbacks');
+    }
+  }
 
   async function apiGet(action, params = {}) {
     return apiJson('/api/portal', { action, ...params });

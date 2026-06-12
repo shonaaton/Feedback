@@ -148,6 +148,33 @@
               <h2>Automation controls</h2>
             </div>
           </div>
+          <section class="panel-block">
+            <div class="block-title">
+              <h3>Manual feedback launch</h3>
+            </div>
+            <div class="form-grid three">
+              <label class="field">
+                <span>Month</span>
+                <select id="admin-launch-month"></select>
+              </label>
+              <label class="field">
+                <span>Coach scope</span>
+                <select id="admin-launch-scope">
+                  <option value="all">All active coaches</option>
+                  <option value="single">One coach only</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Select coach</span>
+                <select id="admin-launch-coach" disabled>
+                  <option value="">Select coach</option>
+                </select>
+              </label>
+            </div>
+            <div class="action-row">
+              <button class="btn primary" id="admin-launch-btn">Create Feedbacks</button>
+            </div>
+          </section>
           <div class="admin-grid">
             <button class="admin-card" data-admin-action="launch_tasks">
               <span>01</span><strong>Create This Month's Tasks</strong><small>Generate fresh tasks for all active students mapped to active coaches.</small>
@@ -155,8 +182,8 @@
             <button class="admin-card" data-admin-action="send_reminders">
               <span>02</span><strong>Queue Reminder Emails</strong><small>Queue both coach reminders and mentor/admin review reminders for this month.</small>
             </button>
-            <button class="admin-card" data-admin-action="queue_parent_delivery">
-              <span>03</span><strong>Queue Parent Delivery</strong><small>Prepare approved feedback emails for parents that have not been sent yet.</small>
+            <button class="admin-card" data-admin-action="send_all_to_parents">
+              <span>03</span><strong>Send All To Parents</strong><small>Send all approved feedback reports that have not yet been delivered.</small>
             </button>
             <button class="admin-card" data-admin-action="cleanup_lichess">
               <span>04</span><strong>Clean Lichess Snapshots</strong><small>Remove stale duplicate Lichess snapshots and keep the latest usable data.</small>
@@ -236,6 +263,7 @@
           <div class="drawer-actions">
             <button class="btn ghost" id="save-draft-btn">Save Draft</button>
             <button class="btn primary" id="submit-feedback-btn">Submit to Mentor</button>
+            <button class="btn ghost mentor-tools hidden" id="save-review-btn">Save Review</button>
             <button class="btn gold mentor-tools hidden" id="approve-btn">Approve & Send</button>
             <button class="btn ghost mentor-tools hidden" id="return-btn">Return to Coach</button>
           </div>
