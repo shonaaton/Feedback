@@ -26,9 +26,9 @@ body {
   font-family: Outfit, "Segoe UI", Arial, sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(253, 231, 90, .42), transparent 28rem),
-    radial-gradient(circle at top right, rgba(90, 19, 114, .25), transparent 30rem),
-    linear-gradient(135deg, #f4e8fb 0%, #fff7d7 52%, #f8f0ff 100%);
+    radial-gradient(circle at top left, rgba(253, 231, 90, .18), transparent 28rem),
+    radial-gradient(circle at top right, rgba(90, 19, 114, .22), transparent 30rem),
+    linear-gradient(135deg, #090511 0%, #160824 52%, #221035 100%);
 }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
@@ -151,9 +151,9 @@ button { cursor: pointer; }
   inset: 0;
   background:
     radial-gradient(circle at 18% 64%, rgba(255, 221, 120, .13), transparent 15rem),
-    linear-gradient(90deg, rgba(14, 8, 24, .36), transparent 48%, rgba(14, 8, 24, .18)),
+    linear-gradient(90deg, rgba(14, 8, 24, .52), transparent 52%, rgba(14, 8, 24, .22)),
     url("https://images.unsplash.com/photo-1528819622765-d6bcf132f793?auto=format&fit=crop&w=1400&q=80") center/cover;
-  opacity: .34;
+  opacity: .48;
   mix-blend-mode: screen;
 }
 .hero-brand {
@@ -194,9 +194,9 @@ button { cursor: pointer; }
 }
 .hero h1 {
   margin: 0;
-  max-width: 11ch;
+  max-width: 9ch;
   font-family: Cinzel, Georgia, serif;
-  font-size: clamp(2.2rem, 4.2vw, 4rem);
+  font-size: clamp(2.15rem, 3.7vw, 3.8rem);
   letter-spacing: -.045em;
   line-height: 1.02;
 }
@@ -247,11 +247,12 @@ button { cursor: pointer; }
   padding: 26px 28px;
   border-radius: 32px;
   background:
-    linear-gradient(180deg, rgba(22, 13, 34, .96), rgba(18, 12, 30, .92)),
+    linear-gradient(180deg, rgba(26, 18, 41, .9), rgba(18, 12, 30, .82)),
     radial-gradient(circle at top, rgba(253, 231, 90, .08), transparent 12rem);
   border: 1px solid rgba(240, 202, 97, .22);
   box-shadow: 0 28px 60px rgba(6, 3, 14, .26);
   color: white;
+  backdrop-filter: blur(22px);
 }
 .login-card.premium-login * {
   color: inherit;
@@ -275,19 +276,6 @@ button { cursor: pointer; }
 }
 .login-card.premium-login .section-heading p { color: rgba(255,255,255,.74); }
 .login-card.premium-login .field span { color: #f4db7a; }
-.login-card.premium-login .field input,
-.login-card.premium-login .field select,
-.login-card.premium-login .search {
-  color: #fff;
-  background: rgba(255,255,255,.06);
-  border-color: rgba(232, 213, 255, .16);
-}
-.login-card.premium-login .field input::placeholder { color: rgba(255,255,255,.46); }
-.login-card.premium-login .field input:focus,
-.login-card.premium-login .field select:focus {
-  border-color: rgba(240, 202, 97, .72);
-  box-shadow: 0 0 0 4px rgba(240, 202, 97, .08);
-}
 .login-card.premium-login .status-pill.neutral {
   background: rgba(255,255,255,.12);
   color: #fff;
@@ -300,6 +288,67 @@ button { cursor: pointer; }
 .landing-form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .field-wide { grid-column: span 2; }
 .landing-actions { margin-top: 4px; }
+.input-shell {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1.5px solid rgba(232, 213, 255, .16);
+  border-radius: 18px;
+  background: rgba(255,255,255,.06);
+  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease, background .16s ease;
+}
+.input-shell:focus-within {
+  border-color: rgba(240, 202, 97, .72);
+  box-shadow: 0 0 0 4px rgba(240, 202, 97, .08);
+  background: rgba(255,255,255,.08);
+}
+.field-icon {
+  color: rgba(253, 231, 90, .92);
+  font-size: 1rem;
+  line-height: 1;
+}
+.field-caret {
+  justify-self: end;
+  color: rgba(255,255,255,.76);
+  font-size: 1.15rem;
+}
+.select-shell {
+  grid-template-columns: minmax(0, 1fr) 18px;
+  padding-left: 14px;
+}
+.login-card.premium-login .input-shell input,
+.login-card.premium-login .input-shell select {
+  width: 100%;
+  min-height: 54px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  color: #fff;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+}
+.login-card.premium-login .input-shell input::placeholder {
+  color: rgba(255,255,255,.46);
+}
+.login-card.premium-login .input-shell select option {
+  color: #24172d;
+  background: #fffdf4;
+}
+.otp-row {
+  margin-top: 10px;
+  display: flex;
+}
+.otp-row .field {
+  flex: 1 1 260px;
+  margin: 0;
+}
+.otp-send-inline {
+  min-width: 140px;
+  align-self: end;
+}
 .login-support-row {
   display: grid;
   gap: 18px;
@@ -309,6 +358,15 @@ button { cursor: pointer; }
   margin: 0;
   color: rgba(255,255,255,.68);
   line-height: 1.7;
+}
+.help-note {
+  margin: -6px 0 0;
+  color: rgba(255,255,255,.62);
+  font-size: .95rem;
+}
+.help-note span {
+  color: var(--gold-400);
+  font-weight: 700;
 }
 .connection-card {
   display: grid;
@@ -336,14 +394,14 @@ button { cursor: pointer; }
   margin: 0;
   padding: 14px 18px;
   border-radius: 18px;
-  color: var(--plum-800);
-  border: 1px solid rgba(255,255,255,.7);
-  background: rgba(255,255,255,.7);
-  box-shadow: var(--soft-shadow);
+  color: #fff7d0;
+  border: 1px solid rgba(240, 202, 97, .18);
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 12px 28px rgba(0,0,0,.12);
   font-weight: 700;
 }
-.notice.error { background: #fff1f2; color: #a01d31; border-color: rgba(197,61,75,.22); }
-.notice.success { background: #eefbf3; color: #14683b; border-color: rgba(25,135,84,.18); }
+.notice.error { background: rgba(197, 61, 75, .14); color: #ffd9df; border-color: rgba(197,61,75,.22); }
+.notice.success { background: rgba(25, 135, 84, .16); color: #deffe9; border-color: rgba(25,135,84,.18); }
 .login-card, .workspace, .drawer-panel, .panel-block {
   border: 1px solid rgba(255,255,255,.72);
   background: var(--paper);
@@ -580,6 +638,7 @@ button { cursor: pointer; }
   .section-heading, .block-title, .list-section, .drawer-head { flex-direction: column; align-items: stretch; }
   .toolbar .search { max-width: 100%; }
   .action-row .btn, .drawer-actions .btn { width: 100%; }
+  .otp-row .btn { width: 100%; }
   .summary-strip { gap: 6px; }
   .mini-board { width: 120px; height: 120px; }
   .profile-card { padding: 12px; }
@@ -598,6 +657,7 @@ button { cursor: pointer; }
   .login-logo { width: min(250px, 82%); }
   .hero-copy { font-size: .92rem; }
   .login-card.premium-login { padding: 20px 16px; }
+  .input-shell { min-height: 52px; }
   .task-card { padding: 12px; }
   .task-meta span, .badge, .status-pill { font-size: .7rem; }
   .panel-block { padding: 14px; }

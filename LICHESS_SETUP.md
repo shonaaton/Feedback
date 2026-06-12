@@ -3,24 +3,20 @@
 Import this workflow in n8n:
 
 ```text
-n8n-workflows/04-lichess-fetch.json
+n8n-workflows/13-lichess-fetch-mongodb.json
 ```
 
 Activate it. The production webhook must be:
 
 ```text
-https://n8n.srv1170212.hstgr.cloud/webhook/eca-feedback-lichess
+https://n8n.srv1170212.hstgr.cloud/webhook/eca-feedback-lichess-v2
 ```
 
-The portal uses the existing Vercel proxy:
+The portal now calls your normal portal backend first, and that backend can use the n8n workflow for the actual Lichess fetch:
 
 ```text
-/api/n8n?endpoint=eca-feedback-lichess
+/api/lichess
 ```
-
-## Credentials
-
-Open the Google Sheets nodes in the workflow and select your Google Sheets credential.
 
 ## Who can fetch
 
@@ -40,8 +36,17 @@ For the selected task and selected month, it calculates:
 - Puzzle activity
 - Best result
 
-The workflow uses public Lichess data. Puzzle activity is limited to public profile puzzle rating/count; detailed private puzzle activity cannot be fetched without a Lichess OAuth token.
+The workflow uses public Lichess data only. It does not depend on Gemini. Puzzle activity is limited to public profile puzzle rating/count; detailed private puzzle history cannot be fetched without a Lichess OAuth token.
+
+## No activity handling
+
+If no rated activity is found for the selected month, the workflow now returns:
+
+- `Games Played: 0`
+- `Rating Change: No activity`
+- `Puzzle Activity: No activity received this month.`
+- `Best Result: No activity received this month.`
 
 ## After fetching
 
-The data is filled into the feedback form. The coach/mentor must still click Save Draft, Submit, Approve, or Return to write the form values into `Portal_Submissions`.
+The data is filled into the feedback form. The coach/mentor must still click Save Draft, Submit, Approve, or Return to write the form values into MongoDB.

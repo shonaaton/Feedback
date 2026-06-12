@@ -18,6 +18,15 @@
     return ['mentor', 'admin'].includes(String(role || '').toLowerCase());
   }
 
+  function roleLabel(role) {
+    const value = String(role || '').toLowerCase();
+    if (value === 'admin') return 'Admin';
+    if (value === 'mentor') return 'Mentor';
+    if (value === 'coach') return 'Coach';
+    if (value === 'parent') return 'Parent';
+    return capitalize(value || 'coach');
+  }
+
   const demoData = {
     months: ['Mar 2026', 'Apr 2026', 'May 2026'],
     coach: {
@@ -144,6 +153,7 @@
     state.email = $('login-email').value.trim();
     state.month = $('month-select').value;
     if (!state.email) return setBanner('Enter email first.', 'error');
+    if (state.role === 'parent') return setBanner('Parent login design is ready, but parent access is not enabled yet.', 'error');
     setButtonBusy($('send-otp-btn'), true, 'Sending…');
     try {
       await apiJson('/api/auth/request-otp', { email: state.email, role: state.role });
@@ -208,7 +218,7 @@
   }
 
   function updateLoginUi() {
-    $('session-pill').textContent = `${capitalize($('login-role').value)} login`;
+    $('session-pill').textContent = `${roleLabel($('login-role').value)} login`;
   }
 
   async function reloadCurrentView() {
