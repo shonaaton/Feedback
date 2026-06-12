@@ -315,7 +315,11 @@
     const needle = $('mentor-search').value.trim().toLowerCase();
     const reviewQueue = filterTasks((data && data.tasks) || [], needle);
     const completed = filterTasks((data && data.completedTasks) || [], needle);
+    const coachPendingTasks = filterTasks((data && data.coachPendingTasks) || [], needle);
+    const coachPendingGroups = filterCoachPendingGroups((data && data.coachPendingGroups) || [], needle);
     $('mentor-list').innerHTML = [
+      sectionHeader('Coach submissions pending', coachPendingTasks.length, 'Students whose feedback is still not submitted by coaches for this month.'),
+      coachPendingGroups.length ? coachPendingGroups.map(coachPendingCard).join('') : emptyState('No coach-side pending submissions for this month.'),
       sectionHeader('Review queue', reviewQueue.length, 'Submitted and returned items that still need attention.'),
       reviewQueue.length ? reviewQueue.map(taskCard).join('') : emptyState('No review items found for this month.'),
       sectionHeader('Approved', completed.length, 'These are finished and can be checked without mixing them into the queue.'),
@@ -356,6 +360,44 @@
 
   function studentRosterGrid(students) {
     return `<div class="roster-grid">${students.map(studentRosterCard).join('')}</div>`;
+  }
+
+  function filterCoachPendingGroups(groups, needle) {
+    if (!needle) return groups;
+    return groups
+      .map((group) => {
+        const students = (group.students || []).filter((student) =>
+          [student.studentName, student.studentId, student.batchCode, student.lichessId, group.coachName, group.coachEmail]
+            .join(' ')
+            .toLowerCase()
+            .includes(needle)
+        );
+        if (students.length) return { ...group, students, pendingCount: students.length };
+        const coachMatch = [group.coachName, group.coachEmail].join(' ').toLowerCase().includes(needle);
+        return coachMatch ? group : null;
+      })
+      .filter(Boolean);
+  }
+
+  function coachPendingCard(group) {
+    const students = (group.students || []).map((student) => `
+      <li>
+        <strong>${escapeHtml(student.studentName || 'Unnamed Student')}</strong>
+        <span>${escapeHtml(student.studentId || '')}</span>
+        <span>Batch ${escapeHtml(student.batchCode || '-')}</span>
+        <span>${escapeHtml(student.lichessId || 'No Lichess')}</span>
+      </li>
+    `).join('');
+    return `<article class="coach-pending-card">
+      <div class="coach-pending-head">
+        <div>
+          <h3>${escapeHtml(group.coachName || group.coachEmail || 'Coach')}</h3>
+          <p>${escapeHtml(group.coachEmail || 'No email mapped')}</p>
+        </div>
+        <span class="status-pill warn">${escapeHtml(String(group.pendingCount || 0))} pending</span>
+      </div>
+      <ul class="coach-pending-students">${students}</ul>
+    </article>`;
   }
 
   function studentRosterCard(student) {

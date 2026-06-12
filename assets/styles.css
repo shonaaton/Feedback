@@ -544,6 +544,63 @@ button { cursor: pointer; }
 }
 .task-card:hover { border-color: rgba(90,19,114,.36); box-shadow: var(--soft-shadow); }
 .task-title { margin: 0 0 6px; font-size: 1rem; color: var(--plum-900); letter-spacing: -.02em; }
+.coach-pending-card {
+  border: 1.5px solid var(--line);
+  background: linear-gradient(180deg, #fffdfa, #ffffff);
+  border-radius: 22px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(48,10,59,.06);
+}
+.coach-pending-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.coach-pending-head h3 {
+  margin: 0;
+  color: var(--plum-900);
+  font-size: 1rem;
+}
+.coach-pending-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .88rem;
+}
+.coach-pending-students {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.coach-pending-students li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(90,19,114,.04);
+  border: 1px solid rgba(90,19,114,.08);
+}
+.coach-pending-students strong {
+  color: var(--plum-900);
+  margin-right: 4px;
+}
+.coach-pending-students span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.88);
+  border: 1px solid rgba(90,19,114,.12);
+  color: var(--muted);
+  font-size: .78rem;
+  white-space: nowrap;
+}
 .roster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -640,6 +697,7 @@ button { cursor: pointer; }
   .task-card { grid-template-columns: 1fr; }
   .drawer-panel { left: 10px; right: 10px; top: 10px; bottom: 10px; width: auto; }
   .section-heading, .block-title, .list-section, .drawer-head { flex-direction: column; align-items: stretch; }
+  .coach-pending-head { flex-direction: column; align-items: stretch; }
   .toolbar .search { max-width: 100%; }
   .action-row .btn, .drawer-actions .btn { width: 100%; }
   .summary-strip { gap: 6px; }
