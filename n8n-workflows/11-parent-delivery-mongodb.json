@@ -1,0 +1,275 @@
+{
+  "name": "ECA Parent Delivery - MongoDB",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "parent-schedule",
+      "name": "Hourly Parent Delivery",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { action: 'queue_parent_delivery' } }];"
+      },
+      "id": "build-parent-request",
+      "name": "Build Parent Queue Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "queue-parent-jobs",
+      "name": "Queue Parent Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -470,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'claim_jobs', type: 'parent-delivery', limit: 25 } }}",
+        "options": {}
+      },
+      "id": "claim-parent-jobs",
+      "name": "Claim Parent Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -210,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = (($input.first().json.data || {}).jobs || []);\nreturn jobs.map(job => ({ json: job }));"
+      },
+      "id": "split-parent-jobs",
+      "name": "Split Parent Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        30,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'parent_delivery_payload', taskId: $json.payload.taskId } }}",
+        "options": {}
+      },
+      "id": "get-parent-payload",
+      "name": "Get Parent Payload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        290,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node['Split Parent Jobs'].json.payload.parentEmail}}",
+        "subject": "=Monthly feedback report for {{$json.data.studentName}} - {{$json.data.month}}",
+        "emailType": "html",
+        "message": "={{$json.data.html}}",
+        "options": {}
+      },
+      "id": "send-parent-email",
+      "name": "Send Parent Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'complete_job', jobId: $node['Split Parent Jobs'].json._id, result: { sentTo: $node['Split Parent Jobs'].json.payload.parentEmail } } }}",
+        "options": {}
+      },
+      "id": "complete-parent-job",
+      "name": "Complete Parent Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        830,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Parent Delivery": {
+      "main": [
+        [
+          {
+            "node": "Build Parent Queue Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Parent Queue Request": {
+      "main": [
+        [
+          {
+            "node": "Queue Parent Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue Parent Jobs": {
+      "main": [
+        [
+          {
+            "node": "Claim Parent Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Parent Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Parent Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Parent Jobs": {
+      "main": [
+        [
+          {
+            "node": "Get Parent Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Parent Payload": {
+      "main": [
+        [
+          {
+            "node": "Send Parent Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Parent Email": {
+      "main": [
+        [
+          {
+            "node": "Complete Parent Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

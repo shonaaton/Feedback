@@ -1,0 +1,233 @@
+{
+  "name": "ECA Coach Reminders - MongoDB",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "coach-reminder-schedule",
+      "name": "Coach Reminder Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst month = now.toLocaleString('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' });\nreturn [{ json: { action: 'queue_coach_reminders', month } }];"
+      },
+      "id": "build-coach-reminders",
+      "name": "Build Coach Reminder Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "queue-coach-reminders",
+      "name": "Queue Coach Reminders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'claim_jobs', type: 'coach-reminder', limit: 50 } }}",
+        "options": {}
+      },
+      "id": "claim-coach-reminder-jobs",
+      "name": "Claim Coach Reminder Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -90,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = (($input.first().json.data || {}).jobs || []);\nreturn jobs.map(job => ({ json: job }));"
+      },
+      "id": "split-coach-reminder-jobs",
+      "name": "Split Coach Reminder Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        150,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.payload.coachEmail}}",
+        "subject": "=Reminder: pending feedback tasks for {{$json.payload.month}}",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#24172d;padding:24px;max-width:720px;margin:0 auto;background:#fff9e8;border:1px solid #f0ca61;border-radius:18px;\">\n  <div style=\"background:linear-gradient(135deg,#2f0a3b,#5a1372);padding:20px 24px;border-radius:14px;color:white;\">\n    <div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fde75a;font-weight:700;\">Envision Chess Academy</div>\n    <h2 style=\"margin:8px 0 0;font-size:28px;line-height:1.1;\">Reminder: feedback still pending</h2>\n  </div>\n  <p style=\"margin:24px 0 10px;\">Hello {{$json.payload.coachName || 'Coach'}},</p>\n  <p style=\"margin:0 0 18px;\">Please complete the following feedback tasks for <strong>{{$json.payload.month}}</strong>.</p>\n  <ul style=\"padding-left:18px;\">{{$json.payload.tasks.map(task => `<li><strong>${task.studentName}</strong> (${task.studentId}) - ${task.taskStatus}/${task.mentorStatus}</li>`).join('')}}</ul>\n</div>",
+        "options": {}
+      },
+      "id": "send-coach-reminder-email",
+      "name": "Send Coach Reminder Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'complete_job', jobId: $json._id, result: { sentTo: $json.payload.coachEmail } } }}",
+        "options": {}
+      },
+      "id": "complete-coach-reminder-job",
+      "name": "Complete Coach Reminder Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Coach Reminder Schedule": {
+      "main": [
+        [
+          {
+            "node": "Build Coach Reminder Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Coach Reminder Request": {
+      "main": [
+        [
+          {
+            "node": "Queue Coach Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue Coach Reminders": {
+      "main": [
+        [
+          {
+            "node": "Claim Coach Reminder Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Coach Reminder Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Coach Reminder Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Coach Reminder Jobs": {
+      "main": [
+        [
+          {
+            "node": "Send Coach Reminder Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Coach Reminder Email": {
+      "main": [
+        [
+          {
+            "node": "Complete Coach Reminder Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

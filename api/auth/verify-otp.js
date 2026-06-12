@@ -17,6 +17,7 @@ module.exports = async function handler(req, res) {
       sessionToken: session.sessionToken,
       email: session.email,
       role: session.role,
+      name: session.name || '',
       expiresAt: session.expiresAt
     });
   } catch (error) {

@@ -5,12 +5,17 @@
   const state = {
     role: 'coach',
     email: '',
+    name: '',
     month: '',
     sessionToken: '',
     currentTask: null,
     currentView: 'coach',
     cache: { coach: null, mentor: null, approved: null }
   };
+
+  function isMentorLane(role = state.role) {
+    return ['mentor', 'admin'].includes(String(role || '').toLowerCase());
+  }
 
   const demoData = {
     months: ['Mar 2026', 'Apr 2026', 'May 2026'],
@@ -144,6 +149,8 @@
     try {
       const data = await apiJson('/api/auth/verify-otp', { email: state.email, role: state.role, code });
       state.sessionToken = data.sessionToken || data.token || '';
+      state.role = data.role || state.role;
+      state.name = data.name || '';
       if (!state.sessionToken) throw new Error('OTP verified but no sessionToken was returned by n8n. Check the auth workflow.');
       openWorkspace();
       setBanner('Login verified. Workspace opened.', 'success');
@@ -158,14 +165,15 @@
   function openWorkspace() {
     $('login-card').classList.add('hidden');
     $('workspace').classList.remove('hidden');
-    $('profile-email').textContent = state.email;
-    $('profile-role').textContent = capitalize(state.role);
+    $('profile-email').textContent = state.name || state.email;
+    $('profile-email').title = state.email;
+    $('profile-role').textContent = isMentorLane(state.role) ? 'Mentor / Admin' : capitalize(state.role);
     $('avatar').textContent = (state.email || 'E').slice(0, 1).toUpperCase();
     $('session-pill').textContent = 'Signed in';
     $('session-pill').className = 'status-pill good';
-    $$('body .mentor-only').forEach(el => el.classList.toggle('hidden', state.role !== 'mentor'));
-    switchView(state.role === 'mentor' ? 'mentor' : 'coach');
-    if (state.role === 'mentor') {
+    $$('body .mentor-only').forEach(el => el.classList.toggle('hidden', !isMentorLane()));
+    switchView(isMentorLane() ? 'mentor' : 'coach');
+    if (isMentorLane()) {
       loadMentorDashboard();
       loadApprovedDashboard();
     } else {
@@ -174,7 +182,7 @@
   }
 
   function resetPortal() {
-    state.role = 'coach'; state.email = ''; state.month = ''; state.sessionToken = ''; state.currentTask = null;
+    state.role = 'coach'; state.email = ''; state.name = ''; state.month = ''; state.sessionToken = ''; state.currentTask = null;
     state.cache = { coach: null, mentor: null, approved: null };
     $('login-role').value = 'coach'; $('login-email').value = ''; $('otp-code').value = ''; $('otp-row').classList.remove('show');
     $('login-card').classList.remove('hidden'); $('workspace').classList.add('hidden'); closeDrawer();
@@ -194,7 +202,7 @@
   }
 
   function switchView(view) {
-    if (state.role !== 'mentor' && view !== 'coach') view = 'coach';
+    if (!isMentorLane() && view !== 'coach') view = 'coach';
     state.currentView = view;
     $$('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === view));
     $$('.view').forEach(el => el.classList.add('hidden'));
@@ -222,7 +230,7 @@
   }
 
   async function loadMentorDashboard() {
-    if (state.role !== 'mentor') return;
+    if (!isMentorLane()) return;
     setButtonBusy($('load-mentor-btn'), true, 'Loading…');
     try {
       const data = await apiGet('mentor_dashboard', sessionParams({ email: state.email, month: state.month }));
@@ -241,7 +249,7 @@
   }
 
   async function loadApprovedDashboard() {
-    if (state.role !== 'mentor') return;
+    if (!isMentorLane()) return;
     setButtonBusy($('load-approved-btn'), true, 'Loading…');
     try {
       const data = await apiGet('approved_dashboard', sessionParams({ email: state.email, month: state.month }));
@@ -436,7 +444,7 @@
       setValue(fields[key], feedback[key]);
     });
 
-    const isMentor = state.role === 'mentor';
+    const isMentor = isMentorLane();
     $$('.mentor-tools').forEach(el => el.classList.toggle('hidden', !isMentor));
     $('save-draft-btn').classList.toggle('hidden', isMentor);
     $('submit-feedback-btn').classList.toggle('hidden', isMentor);
@@ -528,7 +536,7 @@
   }
 
   async function runAdminAction(action) {
-    if (state.role !== 'mentor') return setBanner('Only mentors/admins can run this.', 'error');
+    if (!isMentorLane()) return setBanner('Only mentors/admins can run this.', 'error');
     const log = $('admin-log');
     log.textContent = `Running ${action}…`;
     try {
@@ -536,7 +544,7 @@
       const data = await apiPost(action, payload);
       log.textContent = JSON.stringify(data, null, 2);
       setBanner(`${labelize(action)} complete.`, 'success');
-      if (['sync_legacy','launch_tasks','initialize'].includes(action)) await reloadCurrentView();
+      if (['launch_tasks', 'send_reminders', 'queue_parent_delivery', 'cleanup_lichess'].includes(action)) await reloadCurrentView();
     } catch (error) {
       log.textContent = error.stack || error.message;
       setBanner(error.message, 'error');

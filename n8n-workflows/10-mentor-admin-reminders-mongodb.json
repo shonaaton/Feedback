@@ -1,0 +1,233 @@
+{
+  "name": "ECA Mentor Admin Reminders - MongoDB",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "mentor-schedule",
+      "name": "Mentor Reminder Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -860,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst month = now.toLocaleString('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' });\nreturn [{ json: { action: 'queue_mentor_reminders', month } }];"
+      },
+      "id": "build-mentor-reminders",
+      "name": "Build Mentor Reminder Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "queue-mentor-reminders",
+      "name": "Queue Mentor Reminders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'claim_jobs', type: 'mentor-reminder', limit: 50 } }}",
+        "options": {}
+      },
+      "id": "claim-mentor-jobs",
+      "name": "Claim Mentor Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -90,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = (($input.first().json.data || {}).jobs || []);\nreturn jobs.map(job => ({ json: job }));"
+      },
+      "id": "split-mentor-jobs",
+      "name": "Split Mentor Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        150,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.payload.mentorEmail}}",
+        "subject": "=Reminder: feedback approvals pending for {{$json.payload.month}}",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#24172d;padding:24px;max-width:720px;margin:0 auto;background:#fff9e8;border:1px solid #f0ca61;border-radius:18px;\">\n  <div style=\"background:linear-gradient(135deg,#2f0a3b,#5a1372);padding:20px 24px;border-radius:14px;color:white;\">\n    <div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fde75a;font-weight:700;\">Envision Chess Academy</div>\n    <h2 style=\"margin:8px 0 0;font-size:28px;line-height:1.1;\">Pending mentor approvals</h2>\n  </div>\n  <p style=\"margin:24px 0 18px;\">The following submissions are waiting for review for <strong>{{$json.payload.month}}</strong>.</p>\n  <ul style=\"padding-left:18px;\">{{$json.payload.tasks.map(task => `<li><strong>${task.studentName}</strong> (${task.studentId}) - Coach ${task.coachName}</li>`).join('')}}</ul>\n</div>",
+        "options": {}
+      },
+      "id": "send-mentor-email",
+      "name": "Send Mentor Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'complete_job', jobId: $json._id, result: { sentTo: $json.payload.mentorEmail } } }}",
+        "options": {}
+      },
+      "id": "complete-mentor-job",
+      "name": "Complete Mentor Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Mentor Reminder Schedule": {
+      "main": [
+        [
+          {
+            "node": "Build Mentor Reminder Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Mentor Reminder Request": {
+      "main": [
+        [
+          {
+            "node": "Queue Mentor Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue Mentor Reminders": {
+      "main": [
+        [
+          {
+            "node": "Claim Mentor Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Mentor Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Mentor Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Mentor Jobs": {
+      "main": [
+        [
+          {
+            "node": "Send Mentor Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mentor Email": {
+      "main": [
+        [
+          {
+            "node": "Complete Mentor Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

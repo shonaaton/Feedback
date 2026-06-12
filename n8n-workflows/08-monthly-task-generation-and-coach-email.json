@@ -1,0 +1,233 @@
+{
+  "name": "ECA 26th Task Generation And Coach Email",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 26 * *"
+            }
+          ]
+        }
+      },
+      "id": "monthly-schedule",
+      "name": "26th Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst month = now.toLocaleString('en-IN', { month: 'short', year: 'numeric', timeZone: 'UTC' });\nreturn [{ json: { action: 'generate_monthly_tasks', month } }];"
+      },
+      "id": "build-generation-request",
+      "name": "Build Generation Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -740,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{$json}}",
+        "options": {}
+      },
+      "id": "call-generate-api",
+      "name": "Call Generate API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -470,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'claim_jobs', type: 'coach-task-launch', limit: 50 } }}",
+        "options": {}
+      },
+      "id": "claim-coach-launch-jobs",
+      "name": "Claim Coach Launch Jobs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const jobs = (($input.first().json.data || {}).jobs || []);\nreturn jobs.map(job => ({ json: job }));"
+      },
+      "id": "split-coach-jobs",
+      "name": "Split Coach Jobs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        70,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.payload.coachEmail}}",
+        "subject": "=Feedback tasks created for {{$json.payload.month}}",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:Arial,sans-serif;line-height:1.6;color:#24172d;padding:24px;max-width:720px;margin:0 auto;background:#fff9e8;border:1px solid #f0ca61;border-radius:18px;\">\n  <div style=\"background:linear-gradient(135deg,#2f0a3b,#5a1372);padding:20px 24px;border-radius:14px;color:white;\">\n    <div style=\"font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#fde75a;font-weight:700;\">Envision Chess Academy</div>\n    <h2 style=\"margin:8px 0 0;font-size:28px;line-height:1.1;\">New Feedback Tasks Ready</h2>\n  </div>\n  <p style=\"margin:24px 0 10px;\">Hello {{$json.payload.coachName || 'Coach'}},</p>\n  <p style=\"margin:0 0 18px;\">Your feedback tasks for <strong>{{$json.payload.month}}</strong> are now available in the portal.</p>\n  <ul style=\"padding-left:18px;\">{{$json.payload.tasks.map(task => `<li><strong>${task.studentName}</strong> (${task.studentId}) - Batch ${task.batchCode || '-'}</li>`).join('')}}</ul>\n  <p style=\"margin:18px 0 0;\">Please log in to the portal and complete all feedback submissions on time.</p>\n</div>",
+        "options": {}
+      },
+      "id": "send-coach-launch-email",
+      "name": "Send Coach Launch Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.PORTAL_AUTOMATION_URL}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{$env.AUTOMATION_SECRET}}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { action: 'complete_job', jobId: $json._id, result: { sentTo: $json.payload.coachEmail } } }}",
+        "options": {}
+      },
+      "id": "complete-coach-job",
+      "name": "Complete Coach Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        620,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "26th Schedule": {
+      "main": [
+        [
+          {
+            "node": "Build Generation Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Generation Request": {
+      "main": [
+        [
+          {
+            "node": "Call Generate API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Generate API": {
+      "main": [
+        [
+          {
+            "node": "Claim Coach Launch Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claim Coach Launch Jobs": {
+      "main": [
+        [
+          {
+            "node": "Split Coach Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Coach Jobs": {
+      "main": [
+        [
+          {
+            "node": "Send Coach Launch Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Coach Launch Email": {
+      "main": [
+        [
+          {
+            "node": "Complete Coach Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

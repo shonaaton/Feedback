@@ -12,6 +12,14 @@ const {
   queueNotification,
   submitFeedback
 } = require('../lib/portal-data');
+const {
+  cleanupLichessSnapshots,
+  queueCoachLaunchEmails,
+  queueCoachReminders,
+  queueMentorReminders,
+  queueParentDelivery
+} = require('../lib/automation');
+const { generateMonthlyTasks } = require('../lib/task-generator');
 
 module.exports = async function handler(req, res) {
   if (allowCors(req, res)) return;
@@ -68,10 +76,46 @@ module.exports = async function handler(req, res) {
       }
       return ok(res, { task: updatedTask, message: payload.mentorStatus === 'Approved' ? 'Approved and queued for parent delivery.' : 'Returned to coach.' });
     }
-    if (['initialize', 'sync_legacy', 'launch_tasks', 'send_reminders'].includes(action)) {
+    if (action === 'launch_tasks') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const generated = await generateMonthlyTasks(db, month);
+      const coachLaunch = await queueCoachLaunchEmails(db, month);
+      return ok(res, {
+        message: 'Monthly tasks generated and coach launch emails queued.',
+        generated,
+        coachLaunch
+      });
+    }
+    if (action === 'send_reminders') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const coach = await queueCoachReminders(db, month);
+      const mentor = await queueMentorReminders(db, month);
+      return ok(res, {
+        message: 'Coach and mentor reminder emails queued.',
+        coach,
+        mentor
+      });
+    }
+    if (action === 'queue_parent_delivery') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const parentDelivery = await queueParentDelivery(db, month);
+      return ok(res, {
+        message: 'Parent delivery jobs queued.',
+        parentDelivery
+      });
+    }
+    if (action === 'cleanup_lichess') {
+      if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
+      const cleanup = await cleanupLichessSnapshots(db, 1);
+      return ok(res, {
+        message: 'Lichess snapshot cleanup complete.',
+        cleanup
+      });
+    }
+    if (['initialize', 'sync_legacy', 'install_triggers'].includes(action)) {
       if (!['mentor', 'admin'].includes(session.role)) return fail(res, 403, 'Mentor access required.');
       await queueNotification(db, `admin-${action}`, { actorEmail: session.email, month });
-      return ok(res, { message: `${action} queued for automation processing.` });
+      return ok(res, { message: `${action} queued for legacy support processing.` });
     }
 
     return fail(res, 400, `Unsupported action: ${action}`);

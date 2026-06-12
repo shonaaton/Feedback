@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vercel dev",
     "start": "vercel dev",
-    "seed:users": "node scripts/seed-users.js"
+    "seed:users": "node scripts/seed-users.js",
+    "generate:tasks": "node scripts/generate-monthly-tasks.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

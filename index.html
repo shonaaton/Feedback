@@ -145,27 +145,24 @@
           <div class="section-heading sticky-heading">
             <div>
               <p class="eyebrow dark">Admin Tools</p>
-              <h2>Monthly operations</h2>
+              <h2>Automation controls</h2>
             </div>
           </div>
           <div class="admin-grid">
-            <button class="admin-card" data-admin-action="initialize">
-              <span>01</span><strong>Initialize Sheets</strong><small>Create/repair Portal_Tasks, Portal_Submissions, and mentor config.</small>
-            </button>
-            <button class="admin-card" data-admin-action="sync_legacy">
-              <span>02</span><strong>Import Old Approval Data</strong><small>Bring old detailed approvals into the new portal tables.</small>
-            </button>
             <button class="admin-card" data-admin-action="launch_tasks">
-              <span>03</span><strong>Launch Current Month</strong><small>Create monthly tasks for active roster pairs.</small>
+              <span>01</span><strong>Create This Month's Tasks</strong><small>Generate fresh tasks for all active students mapped to active coaches.</small>
             </button>
             <button class="admin-card" data-admin-action="send_reminders">
-              <span>04</span><strong>Send Reminders</strong><small>Email coaches who still have pending/returned tasks.</small>
+              <span>02</span><strong>Queue Reminder Emails</strong><small>Queue both coach reminders and mentor/admin review reminders for this month.</small>
             </button>
-            <button class="admin-card" data-admin-action="install_triggers">
-              <span>05</span><strong>Install Triggers</strong><small>Monthly launch and reminder trigger setup.</small>
+            <button class="admin-card" data-admin-action="queue_parent_delivery">
+              <span>03</span><strong>Queue Parent Delivery</strong><small>Prepare approved feedback emails for parents that have not been sent yet.</small>
+            </button>
+            <button class="admin-card" data-admin-action="cleanup_lichess">
+              <span>04</span><strong>Clean Lichess Snapshots</strong><small>Remove stale duplicate Lichess snapshots and keep the latest usable data.</small>
             </button>
           </div>
-          <pre class="log-box" id="admin-log">Admin output will appear here.</pre>
+          <pre class="log-box" id="admin-log">Automation results will appear here.</pre>
         </section>
       </div>
     </section>
