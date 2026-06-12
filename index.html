@@ -30,7 +30,7 @@
   </div>
 
   <main class="app-shell">
-    <section class="landing-shell">
+    <section class="landing-shell" id="login-shell">
       <div class="landing-stage">
         <div class="landing-grid">
           <section class="hero premium-hero">
@@ -38,7 +38,6 @@
             <div class="hero-brand">
               <img class="hero-logo" src="https://res.cloudinary.com/dlafr6yu3/image/upload/v1781225175/text_logo_yellow_2_jkykvz.png" alt="Envision Chess Academy" />
               <p class="eyebrow">Monthly Feedback Portal</p>
-              <div class="hero-badge">Every Move. A Better Future.</div>
               <h1>Every Move. A Better Future.</h1>
               <p class="hero-copy">Envision Chess Academy helps build confident thinkers and future leaders through structured coaching, thoughtful feedback, and a premium reporting experience.</p>
               <div class="hero-points">
@@ -54,11 +53,6 @@
                   <strong>Safe & Secure</strong>
                   <span>Protected access with role-based OTP login across admin, coach, and mentor workflows.</span>
                 </article>
-              </div>
-              <div class="hero-bottom-points">
-                <div><strong>Coach Workspace</strong><span>Submit monthly reports faster with a calm, guided interface.</span></div>
-                <div><strong>Mentor Review</strong><span>Approve, return, edit, and send polished reports with confidence.</span></div>
-                <div><strong>Parent Delivery</strong><span>Turn approved feedback into refined reports from one portal.</span></div>
               </div>
             </div>
           </section>
@@ -125,25 +119,19 @@
             <div class="login-support-row">
               <p class="login-note">Use your registered email to receive a one-time password.</p>
               <p class="help-note">Need help? <span>Contact support</span></p>
-              <div class="connection-card">
-                <div class="mini-board" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span>
-                  <span></span><span></span><span></span><span></span>
-                  <span></span><span></span><span></span><span></span>
-                  <span></span><span></span><span></span><span></span>
-                </div>
+              <div class="connection-card compact-connection">
                 <div>
                   <strong id="connection-label">Checking backend...</strong>
-                  <small id="connection-detail">Checking live portal services, tasks, and automation links.</small>
+                  <small id="connection-detail">Checking live portal services and login access.</small>
                 </div>
               </div>
             </div>
           </section>
         </div>
       </div>
-
-      <section class="notice" id="banner" role="status">Loading portal...</section>
     </section>
+
+    <section class="notice" id="banner" role="status">Loading portal...</section>
 
     <section class="workspace hidden" id="workspace">
       <aside class="sidebar">

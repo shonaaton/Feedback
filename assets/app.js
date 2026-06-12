@@ -68,6 +68,7 @@
 
   function init() {
     bindEvents();
+    updateLoginUi();
     setBanner('Portal ready.');
     pingBackend();
     loadMonths();
@@ -189,6 +190,7 @@
   }
 
   function openWorkspace() {
+    $('login-shell').classList.add('hidden');
     $('login-card').classList.add('hidden');
     $('workspace').classList.remove('hidden');
     $('profile-email').textContent = state.name || state.email;
@@ -212,7 +214,7 @@
     state.role = 'coach'; state.email = ''; state.name = ''; state.month = ''; state.sessionToken = ''; state.currentTask = null;
     state.cache = { coach: null, mentor: null, approved: null };
     $('login-role').value = 'coach'; $('login-email').value = ''; $('otp-code').value = ''; $('otp-row').classList.remove('show');
-    $('login-card').classList.remove('hidden'); $('workspace').classList.add('hidden'); closeDrawer();
+    $('login-shell').classList.remove('hidden'); $('login-card').classList.remove('hidden'); $('workspace').classList.add('hidden'); closeDrawer();
     $('session-pill').textContent = 'Signed out'; $('session-pill').className = 'status-pill neutral';
     loadMonths(); setBanner('Session reset.');
   }
